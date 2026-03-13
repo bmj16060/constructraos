@@ -7,8 +7,8 @@ Last updated: 2026-03-13
 - ConstructraOS is based on the reusable starterkit at [github.com/bmj16060/starterkit](https://github.com/bmj16060/starterkit) and is ready to begin building out the real ConstructraOS domain.
 - Keep the shipped demo intentionally small: one LLM-backed `hello-world` workflow plus persisted history.
 - Preserve the full core spine: API, orchestration, PostgreSQL, Valkey, tracing, policy/OPA, and UI shell.
-- Keep the no-login baseline, but route request identity through a real anonymous session boundary.
-- Keep the next architectural seam ready for a future graph database without forcing one into the first slice prematurely.
+- The baseline uses an anonymous session boundary for request identity and policy input.
+- Graph support remains an open architectural seam rather than an active part of the current baseline.
 
 ## In Progress
 
