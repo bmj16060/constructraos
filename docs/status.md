@@ -18,13 +18,13 @@ Last updated: 2026-03-13
 - API requests now bootstrap through a signed anonymous session cookie and `/api/session`, and policy input uses session context instead of a fixed builder actor.
 - The default local UI path now combines baked frontend assets with a host-mounted overlay fallback so clean checkouts still boot while `build:watch` can take over immediately once frontend assets exist on disk.
 - Discovery has now defined the first real domain: project workflows that manage task and bug execution through specialist agents, with ADRs, git branching, and testing as first-class delivery artifacts.
-- The initial domain slice will bootstrap with markdown files on the filesystem for ADRs, project plans, task state, and execution notes rather than requiring full database modeling on day one.
+- The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` for ADRs, project plans, task state, branch state, and execution evidence.
 - v1 is expected to spawn specialist agents, including an SRE specialist, and provide specialist-specific prompts/guidance instead of stopping at planning-only workflow records.
 
 ## Next 3 Tasks
 
-1. Define the first durable filesystem contract for projects, ADRs, tasks, bugs, branch state, and test evidence.
-2. Design and implement the first project-to-task orchestration slice, including one Codex-backed specialist execution path.
+1. Design and implement the first project-to-task orchestration slice against the repo-backed project contract, including one Codex-backed specialist execution path.
+2. Add the first QA -> SRE execution flow that can request a branch-scoped Compose environment, capture evidence, and route failures back into project records.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 
 ## Risks
