@@ -2,7 +2,9 @@
 
 Use this folder to capture short, durable discovery notes when Codex starts with a domain interview.
 
-Each interview note should include the actual transcript or a faithful Q/A transcript excerpt, not only a synthesized summary.
+Each interview note should include the full interview transcript for that discovery pass, not a compressed or synthesized excerpt.
+Keep the transcript as actual assistant/user turns for the interview portion whenever practical.
+Capture the transcript incrementally as the interview proceeds rather than reconstructing it afterward.
 
 Keep notes focused on:
 
