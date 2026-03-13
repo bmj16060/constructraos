@@ -67,6 +67,54 @@ public class ConstructraApiExecutionCallbackClient implements CodexExecutionCall
         }
     }
 
+    @Override
+    public void reportSreEnvironmentOutcome(
+        final CodexExecutionDispatchRequest request,
+        final String environmentName,
+        final String status,
+        final String note
+    ) {
+        if (!config.enabled() || config.url().isBlank()) {
+            return;
+        }
+        if (!"reportSreEnvironmentOutcome".equals(normalize(request.callbackFailureSignal()))) {
+            return;
+        }
+        final String projectId = normalize(request.projectId());
+        final String taskId = normalize(request.taskId());
+        final String branchName = normalize(request.branchName());
+        final String normalizedStatus = normalize(status);
+        if (projectId.isBlank() || taskId.isBlank() || branchName.isBlank() || normalizedStatus.isBlank()) {
+            return;
+        }
+
+        final String baseUrl = trimTrailingSlash(config.url());
+        final URI uri = URI.create(baseUrl + "/api/projects/" + projectId + "/tasks/" + taskId + "/sre-environment-outcomes");
+        final Map<String, Object> payload = Map.of(
+            "branchName", branchName,
+            "environmentName", normalize(environmentName),
+            "status", normalizedStatus,
+            "note", normalize(note)
+        );
+
+        try {
+            final HttpRequest httpRequest = HttpRequest.newBuilder(uri)
+                .timeout(config.timeout())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload)))
+                .build();
+            final HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("Constructra API SRE environment callback returned status " + response.statusCode() + ": " + response.body());
+            }
+        } catch (IOException | InterruptedException exception) {
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalStateException("Failed reporting SRE environment outcome back to Constructra API.", exception);
+        }
+    }
+
     private static String trimTrailingSlash(final String value) {
         return value.endsWith("/") ? value.substring(0, value.length() - 1) : value;
     }

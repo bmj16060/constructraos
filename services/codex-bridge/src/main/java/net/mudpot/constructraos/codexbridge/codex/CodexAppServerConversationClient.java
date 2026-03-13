@@ -1,5 +1,6 @@
 package net.mudpot.constructraos.codexbridge.codex;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
@@ -13,11 +14,13 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Singleton
 public class CodexAppServerConversationClient implements CodexConversationClient {
     private static final String CLIENT_NAME = "constructraos-codex-bridge";
     private static final String CLIENT_VERSION = "0.1.0";
+    private static final long TURN_OUTCOME_TIMEOUT_MINUTES = 15L;
 
     private final CodexAppServerConfig config;
     private final CodexAppServerSessionFactory sessionFactory;
@@ -65,15 +68,37 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         final WorkspaceDirectories workspaceDirectories = resolveWorkspaceDirectories(request);
         final boolean resumingThread = !normalize(request.codexThreadId()).isBlank();
 
-        try (CodexAppServerSession session = sessionFactory.open(URI.create(config.url()), config.timeout())) {
+        final CodexAppServerSession session = sessionFactory.open(URI.create(config.url()), config.timeout());
+        boolean sessionHandedOff = false;
+        try {
             initializeSession(session);
             final String threadId = startOrResumeThread(session, request, workspaceDirectories.appServerDirectory(), resumingThread);
-            submitTurn(session, threadId, request, workspaceDirectories.appServerDirectory());
+            final TurnStartResult turnStartResult = submitTurn(session, threadId, request, workspaceDirectories.appServerDirectory());
+            if ("failed".equalsIgnoreCase(turnStartResult.status())) {
+                reportFallbackSreOutcome(
+                    request,
+                    "failed",
+                    buildFailedTurnNote(turnStartResult.errorMessage(), "")
+                );
+                throw new IllegalStateException("Codex App Server reported a failed turn submission.");
+            }
             callbackClient.reportAccepted(
                 request,
                 threadId,
                 "Codex bridge submitted the initial specialist turn to Codex App Server."
             );
+            if (shouldMonitorTurnOutcome(request)) {
+                if (isTerminalTurnStatus(turnStartResult.status())) {
+                    reportFallbackSreOutcome(
+                        request,
+                        "failed",
+                        buildCompletedTurnFallbackNote("")
+                    );
+                } else {
+                    sessionHandedOff = true;
+                    monitorTurnOutcomeAsync(session, request, turnStartResult.turnId());
+                }
+            }
             return new CodexExecutionDispatchResult(
                 request.executionRequestId(),
                 threadId,
@@ -84,6 +109,10 @@ public class CodexAppServerConversationClient implements CodexConversationClient
             throw exception;
         } catch (Exception exception) {
             throw new IllegalStateException("Failed dispatching Codex execution request to Codex App Server.", exception);
+        } finally {
+            if (!sessionHandedOff) {
+                session.close();
+            }
         }
     }
 
@@ -135,7 +164,7 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         return threadId;
     }
 
-    private void submitTurn(
+    private TurnStartResult submitTurn(
         final CodexAppServerSession session,
         final String threadId,
         final CodexExecutionDispatchRequest request,
@@ -158,13 +187,12 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         turnParams.put("outputSchema", null);
         turnParams.put("collaborationMode", null);
 
-        final String status = session.request("turn/start", turnParams, config.timeout())
-            .path("turn")
-            .path("status")
-            .asText("");
-        if ("failed".equalsIgnoreCase(status)) {
-            throw new IllegalStateException("Codex App Server reported a failed turn submission.");
-        }
+        final JsonNode turn = session.request("turn/start", turnParams, config.timeout()).path("turn");
+        return new TurnStartResult(
+            turn.path("id").asText(""),
+            turn.path("status").asText(""),
+            turn.path("error").path("message").asText("")
+        );
     }
 
     private String buildDeveloperInstructions(final CodexExecutionDispatchRequest request, final Path workspaceDirectory) {
@@ -229,6 +257,90 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         final Path localWorkspaceDirectory = resolveLocalWorkspaceDirectory(request);
         final Path appServerWorkspaceDirectory = resolveAppServerWorkspaceDirectory(request, localWorkspaceDirectory);
         return new WorkspaceDirectories(localWorkspaceDirectory, appServerWorkspaceDirectory);
+    }
+
+    private void monitorTurnOutcomeAsync(
+        final CodexAppServerSession session,
+        final CodexExecutionDispatchRequest request,
+        final String turnId
+    ) {
+        session.turnOutcome(turnId)
+            .orTimeout(TURN_OUTCOME_TIMEOUT_MINUTES, TimeUnit.MINUTES)
+            .whenComplete((outcome, error) -> {
+                try {
+                    if (error != null) {
+                        reportFallbackSreOutcome(
+                            request,
+                            "failed",
+                            "Codex bridge timed out or lost the App Server session before a durable SRE outcome callback arrived."
+                        );
+                        return;
+                    }
+                    final String status = normalize(outcome == null ? "" : outcome.status());
+                    if ("completed".equalsIgnoreCase(status)) {
+                        reportFallbackSreOutcome(
+                            request,
+                            "failed",
+                            buildCompletedTurnFallbackNote(outcome.lastAgentMessage())
+                        );
+                    } else if ("failed".equalsIgnoreCase(status)) {
+                        reportFallbackSreOutcome(
+                            request,
+                            "failed",
+                            buildFailedTurnNote(outcome.errorMessage(), outcome.lastAgentMessage())
+                        );
+                    }
+                } finally {
+                    session.close();
+                }
+            });
+    }
+
+    private void reportFallbackSreOutcome(
+        final CodexExecutionDispatchRequest request,
+        final String status,
+        final String note
+    ) {
+        if (!"reportSreEnvironmentOutcome".equals(normalize(request.callbackFailureSignal()))) {
+            return;
+        }
+        callbackClient.reportSreEnvironmentOutcome(request, "", status, note);
+    }
+
+    private static boolean shouldMonitorTurnOutcome(final CodexExecutionDispatchRequest request) {
+        return "reportSreEnvironmentOutcome".equals(normalize(request.callbackFailureSignal()));
+    }
+
+    private static boolean isTerminalTurnStatus(final String status) {
+        final String normalizedStatus = normalize(status);
+        return "completed".equalsIgnoreCase(normalizedStatus) || "failed".equalsIgnoreCase(normalizedStatus);
+    }
+
+    private static String buildCompletedTurnFallbackNote(final String lastAgentMessage) {
+        final String normalizedLastAgentMessage = normalize(lastAgentMessage);
+        if (normalizedLastAgentMessage.isBlank()) {
+            return "Codex bridge observed a completed specialist turn without a durable SRE environment callback.";
+        }
+        return "Codex bridge observed a completed specialist turn without a durable SRE environment callback. Final agent message:\n\n"
+            + normalizedLastAgentMessage;
+    }
+
+    private static String buildFailedTurnNote(final String errorMessage, final String lastAgentMessage) {
+        final String normalizedErrorMessage = normalize(errorMessage);
+        final String normalizedLastAgentMessage = normalize(lastAgentMessage);
+        if (!normalizedErrorMessage.isBlank() && !normalizedLastAgentMessage.isBlank()) {
+            return "Codex bridge observed a failed specialist turn before a durable SRE environment callback. Error: "
+                + normalizedErrorMessage + "\n\nLast agent message:\n\n" + normalizedLastAgentMessage;
+        }
+        if (!normalizedErrorMessage.isBlank()) {
+            return "Codex bridge observed a failed specialist turn before a durable SRE environment callback. Error: "
+                + normalizedErrorMessage;
+        }
+        if (!normalizedLastAgentMessage.isBlank()) {
+            return "Codex bridge observed a failed specialist turn before a durable SRE environment callback. Last agent message:\n\n"
+                + normalizedLastAgentMessage;
+        }
+        return "Codex bridge observed a failed specialist turn before a durable SRE environment callback.";
     }
 
     private Path resolveLocalWorkspaceDirectory(final CodexExecutionDispatchRequest request) {
@@ -308,5 +420,8 @@ public class CodexAppServerConversationClient implements CodexConversationClient
     }
 
     private record WorkspaceDirectories(Path localDirectory, Path appServerDirectory) {
+    }
+
+    private record TurnStartResult(String turnId, String status, String errorMessage) {
     }
 }

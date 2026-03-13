@@ -59,6 +59,8 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
         private final ObjectMapper objectMapper;
         private final AtomicLong nextRequestId = new AtomicLong(1L);
         private final ConcurrentHashMap<String, CompletableFuture<JsonNode>> pendingResponses = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<String, CompletableFuture<CodexTurnOutcome>> pendingTurnOutcomes = new ConcurrentHashMap<>();
+        private final ConcurrentHashMap<String, TurnOutcomeState> turnOutcomeStates = new ConcurrentHashMap<>();
         private final CompletableFuture<Void> closed = new CompletableFuture<>();
         private final StringBuilder currentMessage = new StringBuilder();
         private volatile WebSocket webSocket;
@@ -97,6 +99,22 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
         @Override
         public void notify(final String method, final Object params) {
             send(buildNotification(method, params));
+        }
+
+        @Override
+        public CompletableFuture<CodexTurnOutcome> turnOutcome(final String turnId) {
+            final String normalizedTurnId = normalize(turnId);
+            if (normalizedTurnId.isBlank()) {
+                final CompletableFuture<CodexTurnOutcome> failed = new CompletableFuture<>();
+                failed.completeExceptionally(new IllegalArgumentException("turnId is required"));
+                return failed;
+            }
+            final CompletableFuture<CodexTurnOutcome> future = pendingTurnOutcomes.computeIfAbsent(
+                normalizedTurnId,
+                ignored -> new CompletableFuture<>()
+            );
+            completeTurnOutcomeIfReady(normalizedTurnId);
+            return future;
         }
 
         @Override
@@ -154,8 +172,12 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
                     }
                     return;
                 }
-                if (message.has("id") && message.has("method")) {
+                if (message.has("method") && message.has("id")) {
                     handleServerRequest(message);
+                    return;
+                }
+                if (message.has("method")) {
+                    handleServerNotification(message);
                 }
             } catch (IOException exception) {
                 completePending(exception);
@@ -177,6 +199,80 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
             }
         }
 
+        private void handleServerNotification(final JsonNode message) {
+            final String method = message.path("method").asText("");
+            final JsonNode params = message.path("params");
+            switch (method) {
+                case "codex/event/task_complete" -> recordLastAgentMessage(
+                    firstNonBlank(
+                        params.path("id").asText(""),
+                        params.path("msg").path("turn_id").asText("")
+                    ),
+                    params.path("msg").path("last_agent_message").asText("")
+                );
+                case "codex/event/agent_message" -> recordLastAgentMessage(
+                    params.path("id").asText(""),
+                    params.path("msg").path("message").asText("")
+                );
+                case "turn/completed", "turn/failed" -> recordTurnTerminalState(method, params);
+                default -> {
+                    // Ignore other notifications for now.
+                }
+            }
+        }
+
+        private void recordTurnTerminalState(final String method, final JsonNode params) {
+            final JsonNode turn = params.path("turn");
+            final String turnId = firstNonBlank(
+                turn.path("id").asText(""),
+                params.path("turnId").asText("")
+            );
+            if (turnId.isBlank()) {
+                return;
+            }
+            final TurnOutcomeState state = turnOutcomeStates.computeIfAbsent(turnId, ignored -> new TurnOutcomeState());
+            state.status = firstNonBlank(turn.path("status").asText(""), "turn/failed".equals(method) ? "failed" : "");
+            state.errorMessage = firstNonBlank(
+                turn.path("error").path("message").asText(""),
+                params.path("error").path("message").asText("")
+            );
+            completeTurnOutcomeIfReady(turnId);
+        }
+
+        private void recordLastAgentMessage(final String turnId, final String lastAgentMessage) {
+            final String normalizedTurnId = normalize(turnId);
+            if (normalizedTurnId.isBlank()) {
+                return;
+            }
+            final TurnOutcomeState state = turnOutcomeStates.computeIfAbsent(normalizedTurnId, ignored -> new TurnOutcomeState());
+            final String normalizedMessage = normalize(lastAgentMessage);
+            if (!normalizedMessage.isBlank()) {
+                state.lastAgentMessage = normalizedMessage;
+            }
+            completeTurnOutcomeIfReady(normalizedTurnId);
+        }
+
+        private void completeTurnOutcomeIfReady(final String turnId) {
+            final String normalizedTurnId = normalize(turnId);
+            if (normalizedTurnId.isBlank()) {
+                return;
+            }
+            final TurnOutcomeState state = turnOutcomeStates.get(normalizedTurnId);
+            if (state == null || normalize(state.status).isBlank()) {
+                return;
+            }
+            final CompletableFuture<CodexTurnOutcome> future = pendingTurnOutcomes.computeIfAbsent(
+                normalizedTurnId,
+                ignored -> new CompletableFuture<>()
+            );
+            future.complete(new CodexTurnOutcome(
+                normalizedTurnId,
+                normalize(state.status),
+                normalize(state.errorMessage),
+                normalize(state.lastAgentMessage)
+            ));
+        }
+
         private void send(final ObjectNode message) {
             final WebSocket activeSocket = webSocket;
             if (activeSocket == null) {
@@ -196,6 +292,8 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
         private void completePending(final Throwable error) {
             pendingResponses.values().forEach(future -> future.completeExceptionally(error));
             pendingResponses.clear();
+            pendingTurnOutcomes.values().forEach(future -> future.completeExceptionally(error));
+            pendingTurnOutcomes.clear();
         }
 
         private ObjectNode buildRequest(final String id, final String method, final Object params) {
@@ -230,6 +328,24 @@ class WebSocketCodexAppServerSessionFactory implements CodexAppServerSessionFact
             response.set("id", id);
             response.set("error", error);
             return response;
+        }
+
+        private static String normalize(final String value) {
+            return value == null ? "" : value.trim();
+        }
+
+        private static String firstNonBlank(final String first, final String second) {
+            final String normalizedFirst = normalize(first);
+            if (!normalizedFirst.isBlank()) {
+                return normalizedFirst;
+            }
+            return normalize(second);
+        }
+
+        private static final class TurnOutcomeState {
+            private String status = "";
+            private String errorMessage = "";
+            private String lastAgentMessage = "";
         }
     }
 }

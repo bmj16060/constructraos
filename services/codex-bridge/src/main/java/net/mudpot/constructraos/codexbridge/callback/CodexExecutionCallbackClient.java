@@ -4,4 +4,6 @@ import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecuti
 
 public interface CodexExecutionCallbackClient {
     void reportAccepted(CodexExecutionDispatchRequest request, String codexThreadId, String note);
+
+    void reportSreEnvironmentOutcome(CodexExecutionDispatchRequest request, String environmentName, String status, String note);
 }

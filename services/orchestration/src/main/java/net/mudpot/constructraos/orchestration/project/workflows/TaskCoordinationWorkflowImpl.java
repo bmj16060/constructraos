@@ -253,13 +253,16 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         );
         final ProjectTaskRecord taskRecord = projectRecordsActivities.loadTask(projectId, taskId);
         final String branchName = resolveBranchName(taskRecord, outcome.branchName());
+        final String effectiveEnvironmentName = normalize(outcome.environmentName()).isBlank()
+            ? environmentName
+            : normalize(outcome.environmentName());
         final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeEvidence(
             new ProjectEvidenceWriteRequest(
                 projectId,
                 taskId,
                 "sre-environment-outcome",
                 branchName,
-                normalize(outcome.environmentName()),
+                effectiveEnvironmentName,
                 "SRE",
                 normalize(outcome.status()),
                 List.of(
@@ -275,7 +278,7 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.taskStatus = taskRecord.status();
         this.activeBranch = branchName;
         this.environmentStatus = normalize(outcome.status());
-        this.environmentName = normalize(outcome.environmentName());
+        this.environmentName = effectiveEnvironmentName;
         this.waitingOn = "ready".equalsIgnoreCase(environmentStatus) ? "QA" : "SRE";
         projectRecordsActivities.writeExecutionRequest(
             new ProjectExecutionRequestWriteRequest(

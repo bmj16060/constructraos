@@ -44,6 +44,30 @@ class ConstructraApiExecutionCallbackClientTest {
         }
     }
 
+    @Test
+    void reportSreEnvironmentOutcomePostsToTaskWorkflowOutcomeEndpoint() throws Exception {
+        final CapturedRequest capturedRequest = new CapturedRequest();
+        final HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/projects/constructraos/tasks/T-0001/sre-environment-outcomes", exchange -> handleAccepted(exchange, capturedRequest));
+        server.start();
+        try {
+            final ConstructraApiExecutionCallbackClient client = new ConstructraApiExecutionCallbackClient(
+                enabledConfig(server.getAddress().getPort()),
+                OBJECT_MAPPER
+            );
+
+            client.reportSreEnvironmentOutcome(request(), "", "failed", "Bridge observed a completed turn without a durable callback.");
+
+            assertEquals("POST", capturedRequest.method);
+            assertNotNull(capturedRequest.body);
+            assertEquals("project/constructraos/integration", capturedRequest.body.path("branchName").asText());
+            assertEquals("failed", capturedRequest.body.path("status").asText());
+            assertEquals("Bridge observed a completed turn without a durable callback.", capturedRequest.body.path("note").asText());
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static void handleAccepted(final HttpExchange exchange, final CapturedRequest capturedRequest) throws IOException {
         capturedRequest.method = exchange.getRequestMethod();
         try (InputStream bodyStream = exchange.getRequestBody()) {

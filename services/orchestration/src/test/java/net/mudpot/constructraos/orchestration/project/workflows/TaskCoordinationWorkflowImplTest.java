@@ -206,6 +206,52 @@ class TaskCoordinationWorkflowImplTest {
         }
     }
 
+    @Test
+    void reportSreOutcomePreservesCurrentEnvironmentNameWhenSignalOmitsIt() {
+        try (TestWorkflowEnvironment environment = TestWorkflowEnvironment.newInstance()) {
+            final CapturingProjectRecordsActivities projectRecordsActivities = new CapturingProjectRecordsActivities();
+            environment.newWorker(TaskQueues.TASK_COORDINATION)
+                .registerWorkflowImplementationFactory(
+                    TaskCoordinationWorkflow.class,
+                    () -> new TaskCoordinationWorkflowImpl(new AllowPolicyActivities(), new StubCodexActivities(), projectRecordsActivities)
+                );
+            environment.start();
+
+            final TaskCoordinationWorkflow workflow = environment.getWorkflowClient().newWorkflowStub(
+                TaskCoordinationWorkflow.class,
+                WorkflowOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.TASK_COORDINATION)
+                    .setWorkflowId("project-constructraos-task-t-0001")
+                    .build()
+            );
+
+            WorkflowClient.start(workflow::run, new TaskWorkflowInput("constructraos", "T-0001", "anonymous", "anon-session-1"));
+            workflow.requestQa(new TaskQaRequestSignal("", "anonymous", "anon-session-1", "Request the first QA pass."));
+            environment.sleep(Duration.ofSeconds(1));
+            workflow.reportCodexExecutionAccepted(
+                new CodexExecutionAcceptedSignal("T-0001-exec-1", "codex-thread-123", "SRE", "Accepted by Codex.")
+            );
+            environment.sleep(Duration.ofSeconds(1));
+            workflow.reportSreEnvironmentOutcome(
+                new net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal(
+                    "project/constructraos/integration",
+                    "",
+                    "failed",
+                    "sre",
+                    "anon-session-1",
+                    "Bridge fallback failure."
+                )
+            );
+            environment.sleep(Duration.ofSeconds(1));
+
+            final TaskWorkflowState state = workflow.currentState();
+
+            assertEquals("planned integration environment", state.environmentName());
+            assertEquals("planned integration environment", projectRecordsActivities.latestRequest.environment());
+            workflow.close("test-complete");
+        }
+    }
+
     private static final class CapturingProjectRecordsActivities implements ProjectRecordsActivities {
         private ProjectEvidenceWriteRequest latestRequest;
         private ProjectExecutionRequestWriteRequest latestExecutionRequest;

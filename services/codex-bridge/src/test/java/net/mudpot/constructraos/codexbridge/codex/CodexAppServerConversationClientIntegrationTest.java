@@ -111,7 +111,20 @@ class CodexAppServerConversationClientIntegrationTest {
     }
 
     private static CodexExecutionCallbackClient noOpCallbackClient() {
-        return (request, codexThreadId, note) -> { };
+        return new CodexExecutionCallbackClient() {
+            @Override
+            public void reportAccepted(final CodexExecutionDispatchRequest request, final String codexThreadId, final String note) {
+            }
+
+            @Override
+            public void reportSreEnvironmentOutcome(
+                final CodexExecutionDispatchRequest request,
+                final String environmentName,
+                final String status,
+                final String note
+            ) {
+            }
+        };
     }
 
     private static int reservePort() throws IOException {

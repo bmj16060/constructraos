@@ -14,6 +14,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +32,7 @@ class CodexAppServerConversationClientTest {
             disabledConfig(),
             OBJECT_MAPPER,
             new FakeSessionFactory((method, params) -> OBJECT_MAPPER.createObjectNode()),
-            (request, codexThreadId, note) -> { },
+            new CapturingCallbackClient(),
             Path.of(".").toAbsolutePath().normalize()
         );
 
@@ -44,7 +47,7 @@ class CodexAppServerConversationClientTest {
         final Path tempRoot = Files.createTempDirectory("codex-bridge-workspaces");
         final List<String> observedMethods = new ArrayList<>();
         final List<JsonNode> observedParams = new ArrayList<>();
-        final List<String> acceptedThreadIds = new ArrayList<>();
+        final CapturingCallbackClient callbackClient = new CapturingCallbackClient();
         final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
             enabledConfig(),
             OBJECT_MAPPER,
@@ -62,7 +65,7 @@ class CodexAppServerConversationClientTest {
                 }
                 throw new IllegalStateException("Unexpected method " + method);
             }),
-            (request, codexThreadId, note) -> acceptedThreadIds.add(codexThreadId + "|" + note),
+            callbackClient,
             tempRoot
         );
 
@@ -71,8 +74,8 @@ class CodexAppServerConversationClientTest {
         assertEquals(List.of("initialize", "thread/start", "turn/start"), observedMethods);
         assertEquals("thread-123", result.codexThreadId());
         assertTrue(result.note().contains("thread started"));
-        assertEquals(1, acceptedThreadIds.size());
-        assertTrue(acceptedThreadIds.getFirst().startsWith("thread-123|"));
+        assertEquals(1, callbackClient.accepted.size());
+        assertTrue(callbackClient.accepted.getFirst().startsWith("thread-123|"));
         assertEquals(
             tempRoot.resolve("runtime/workspaces").resolve("project/constructraos/integration").toString(),
             observedParams.get(1).path("cwd").asText()
@@ -102,7 +105,7 @@ class CodexAppServerConversationClientTest {
                 }
                 throw new IllegalStateException("Unexpected method " + method);
             }),
-            (request, codexThreadId, note) -> { },
+            new CapturingCallbackClient(),
             localRoot
         );
 
@@ -134,7 +137,7 @@ class CodexAppServerConversationClientTest {
                 }
                 throw new IllegalStateException("Unexpected method " + method);
             }),
-            (request, codexThreadId, note) -> { },
+            new CapturingCallbackClient(),
             Path.of(".").toAbsolutePath().normalize()
         );
 
@@ -146,7 +149,7 @@ class CodexAppServerConversationClientTest {
     @Test
     void dispatchResumesExistingThreadWhenThreadIdProvided() throws Exception {
         final List<String> observedMethods = new ArrayList<>();
-        final List<String> acceptedThreadIds = new ArrayList<>();
+        final CapturingCallbackClient callbackClient = new CapturingCallbackClient();
         final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
             enabledConfig(),
             OBJECT_MAPPER,
@@ -163,7 +166,7 @@ class CodexAppServerConversationClientTest {
                 }
                 throw new IllegalStateException("Unexpected method " + method);
             }),
-            (request, codexThreadId, note) -> acceptedThreadIds.add(codexThreadId),
+            callbackClient,
             Path.of(".").toAbsolutePath().normalize()
         );
 
@@ -172,11 +175,12 @@ class CodexAppServerConversationClientTest {
         assertEquals(List.of("initialize", "thread/resume", "turn/start"), observedMethods);
         assertEquals("thread-existing", result.codexThreadId());
         assertTrue(result.note().contains("thread resumed"));
-        assertEquals(List.of("thread-existing"), acceptedThreadIds);
+        assertEquals(List.of("thread-existing|Codex bridge submitted the initial specialist turn to Codex App Server."), callbackClient.accepted);
     }
 
     @Test
     void dispatchFailsWhenTurnSubmissionFails() throws Exception {
+        final CapturingCallbackClient callbackClient = new CapturingCallbackClient();
         final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
             enabledConfig(),
             OBJECT_MAPPER,
@@ -192,11 +196,51 @@ class CodexAppServerConversationClientTest {
                 }
                 throw new IllegalStateException("Unexpected method " + method);
             }),
-            (request, codexThreadId, note) -> { throw new AssertionError("accepted callback should not fire when turn submission fails"); },
+            callbackClient,
             Path.of(".").toAbsolutePath().normalize()
         );
 
         assertThrows(IllegalStateException.class, () -> client.dispatch(request("")));
+        assertTrue(callbackClient.accepted.isEmpty());
+        assertEquals(1, callbackClient.outcomes.size());
+        assertEquals("failed", callbackClient.outcomes.getFirst().status());
+    }
+
+    @Test
+    void dispatchReportsFallbackOutcomeWhenTurnCompletesWithoutDurableCallback() throws Exception {
+        final CountDownLatch outcomeReported = new CountDownLatch(1);
+        final CapturingCallbackClient callbackClient = new CapturingCallbackClient(outcomeReported);
+        final CompletableFuture<CodexTurnOutcome> turnOutcome = new CompletableFuture<>();
+        final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
+            enabledConfig(),
+            OBJECT_MAPPER,
+            new FakeSessionFactory(
+                (method, params) -> {
+                    if ("initialize".equals(method)) {
+                        return json("{\"userAgent\":\"codex-test\"}");
+                    }
+                    if ("thread/start".equals(method)) {
+                        return json("{\"thread\":{\"id\":\"thread-123\"}}");
+                    }
+                    if ("turn/start".equals(method)) {
+                        return json("{\"turn\":{\"id\":\"turn-9\",\"status\":\"inProgress\",\"error\":null,\"items\":[]}}");
+                    }
+                    throw new IllegalStateException("Unexpected method " + method);
+                },
+                turnOutcome
+            ),
+            callbackClient,
+            Path.of(".").toAbsolutePath().normalize()
+        );
+
+        final CodexExecutionDispatchResult result = client.dispatch(request(""));
+
+        assertEquals("thread-123", result.codexThreadId());
+        turnOutcome.complete(new CodexTurnOutcome("turn-9", "completed", "", "Blocked: bridge tool calls are not available."));
+        assertTrue(outcomeReported.await(2, TimeUnit.SECONDS));
+        assertEquals(1, callbackClient.outcomes.size());
+        assertEquals("failed", callbackClient.outcomes.getFirst().status());
+        assertTrue(callbackClient.outcomes.getFirst().note().contains("Blocked: bridge tool calls are not available."));
     }
 
     private static CodexExecutionDispatchRequest request(final String codexThreadId) {
@@ -257,18 +301,27 @@ class CodexAppServerConversationClientTest {
         field.set(target, value);
     }
 
-    private record FakeSessionFactory(BiFunction<String, JsonNode, JsonNode> handler) implements CodexAppServerSessionFactory {
+    private record FakeSessionFactory(
+        BiFunction<String, JsonNode, JsonNode> handler,
+        CompletableFuture<CodexTurnOutcome> turnOutcome
+    ) implements CodexAppServerSessionFactory {
+        private FakeSessionFactory(final BiFunction<String, JsonNode, JsonNode> handler) {
+            this(handler, new CompletableFuture<>());
+        }
+
         @Override
         public CodexAppServerSession open(final URI uri, final Duration timeout) {
-            return new FakeSession(handler);
+            return new FakeSession(handler, turnOutcome);
         }
     }
 
     private static final class FakeSession implements CodexAppServerSession {
         private final BiFunction<String, JsonNode, JsonNode> handler;
+        private final CompletableFuture<CodexTurnOutcome> turnOutcome;
 
-        private FakeSession(final BiFunction<String, JsonNode, JsonNode> handler) {
+        private FakeSession(final BiFunction<String, JsonNode, JsonNode> handler, final CompletableFuture<CodexTurnOutcome> turnOutcome) {
             this.handler = handler;
+            this.turnOutcome = turnOutcome;
         }
 
         @Override
@@ -282,8 +335,48 @@ class CodexAppServerConversationClientTest {
         }
 
         @Override
+        public CompletableFuture<CodexTurnOutcome> turnOutcome(final String turnId) {
+            return turnOutcome;
+        }
+
+        @Override
         public void close() {
             // Nothing to close for the fake session.
         }
+    }
+
+    private static final class CapturingCallbackClient implements net.mudpot.constructraos.codexbridge.callback.CodexExecutionCallbackClient {
+        private final List<String> accepted = new ArrayList<>();
+        private final List<Outcome> outcomes = new ArrayList<>();
+        private final CountDownLatch outcomeReported;
+
+        private CapturingCallbackClient() {
+            this(null);
+        }
+
+        private CapturingCallbackClient(final CountDownLatch outcomeReported) {
+            this.outcomeReported = outcomeReported;
+        }
+
+        @Override
+        public void reportAccepted(final CodexExecutionDispatchRequest request, final String codexThreadId, final String note) {
+            accepted.add(codexThreadId + "|" + note);
+        }
+
+        @Override
+        public void reportSreEnvironmentOutcome(
+            final CodexExecutionDispatchRequest request,
+            final String environmentName,
+            final String status,
+            final String note
+        ) {
+            outcomes.add(new Outcome(environmentName, status, note));
+            if (outcomeReported != null) {
+                outcomeReported.countDown();
+            }
+        }
+    }
+
+    private record Outcome(String environmentName, String status, String note) {
     }
 }
