@@ -36,6 +36,14 @@ test_project_task_sre_environment_report_allowed if {
   allow with input as {"action": "project.task.sre_environment.report"}
 }
 
+test_project_task_codex_execution_accepted_allowed if {
+  allow with input as {"action": "project.task.codex_execution.accepted"}
+}
+
+test_project_execution_request_list_allowed if {
+  allow with input as {"action": "project.execution_request.list"}
+}
+
 test_workflow_task_request_qa_allowed_for_project_and_task if {
   allow with input as {
     "action": "workflow.task.request_qa",

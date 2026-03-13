@@ -5,6 +5,8 @@ import net.mudpot.constructraos.commons.orchestration.project.activities.Project
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import net.mudpot.constructraos.projectrecords.ProjectRecordsGateway;
 
@@ -29,5 +31,10 @@ public class ProjectRecordsActivitiesImpl implements ProjectRecordsActivities {
     @Override
     public ProjectEvidenceRecord writeEvidence(final ProjectEvidenceWriteRequest request) {
         return projectRecordsGateway.writeEvidence(request);
+    }
+
+    @Override
+    public ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
+        return projectRecordsGateway.writeExecutionRequest(request);
     }
 }

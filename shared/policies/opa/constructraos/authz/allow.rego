@@ -5,6 +5,8 @@ allowed_actions := {
   "workflow.hello_world.run",
   "workflow.hello_world.start",
   "workflow.hello_world.history",
+  "project.execution_request.list",
+  "project.task.codex_execution.accepted",
   "project.task.qa_request",
   "project.task.sre_environment.report",
   "project.task.workflow.view",

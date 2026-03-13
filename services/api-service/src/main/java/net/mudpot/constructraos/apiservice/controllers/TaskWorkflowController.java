@@ -120,6 +120,35 @@ public class TaskWorkflowController {
         );
     }
 
+    @Post("/{projectId}/tasks/{taskId}/codex-executions/accepted")
+    public MutableHttpResponse<TaskWorkflowSignalResponse> reportCodexExecutionAccepted(
+        final HttpRequest<?> httpRequest,
+        @PathVariable final String projectId,
+        @PathVariable final String taskId,
+        @Body final CodexExecutionAcceptedBody request
+    ) {
+        final String normalizedProjectId = normalize(projectId);
+        final String normalizedTaskId = normalize(taskId);
+        final CodexExecutionAcceptedBody normalizedRequest = request == null
+            ? new CodexExecutionAcceptedBody("", "", "", "")
+            : request;
+        final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
+        requireAuth("project.task.codex_execution.accepted", normalizedProjectId, normalizedTaskId, session);
+        return anonymousSessionService.attachCookieIfNeeded(
+            HttpResponse.ok(
+                taskCoordinationWorkflowClient.reportCodexExecutionAccepted(
+                    normalizedProjectId,
+                    normalizedTaskId,
+                    normalizedRequest.executionRequestId(),
+                    normalizedRequest.codexThreadId(),
+                    normalizedRequest.specialistRole(),
+                    normalizedRequest.note()
+                )
+            ),
+            session
+        );
+    }
+
     private void requireAuth(final String action, final String projectId, final String taskId, final AnonymousSession session) {
         final Map<String, Object> actor = Map.of(
             "kind", session.actorKind(),
@@ -147,5 +176,8 @@ public class TaskWorkflowController {
     }
 
     record TaskSreEnvironmentOutcomeBody(String branchName, String environmentName, String status, String note) {
+    }
+
+    record CodexExecutionAcceptedBody(String executionRequestId, String codexThreadId, String specialistRole, String note) {
     }
 }

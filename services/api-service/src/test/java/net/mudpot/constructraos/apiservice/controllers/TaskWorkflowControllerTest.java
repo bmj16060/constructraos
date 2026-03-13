@@ -83,6 +83,29 @@ class TaskWorkflowControllerTest {
         assertEquals("reportSreEnvironmentOutcome", response.signalName());
     }
 
+    @Test
+    void reportCodexExecutionAcceptedSignalsWorkflowWhenPolicyAllows() {
+        final StubTaskCoordinationWorkflowClient client = new StubTaskCoordinationWorkflowClient();
+        client.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportCodexExecutionAccepted");
+        final TaskWorkflowController controller = new TaskWorkflowController(client, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
+
+        final TaskWorkflowSignalResponse response = controller.reportCodexExecutionAccepted(
+            HttpRequest.POST("/api/projects/constructraos/tasks/T-0001/codex-executions/accepted", Map.of()),
+            "constructraos",
+            "T-0001",
+            new TaskWorkflowController.CodexExecutionAcceptedBody(
+                "T-0001-exec-1",
+                "codex-thread-123",
+                "SRE",
+                "Codex accepted the SRE execution request."
+            )
+        ).body();
+
+        assertEquals("T-0001-exec-1", client.executionRequestId);
+        assertEquals("codex-thread-123", client.codexThreadId);
+        assertEquals("reportCodexExecutionAccepted", response.signalName());
+    }
+
     private static final class StubTaskCoordinationWorkflowClient extends TaskCoordinationWorkflowClient {
         private String projectId;
         private String taskId;
@@ -92,6 +115,8 @@ class TaskWorkflowControllerTest {
         private String sessionId;
         private String environmentName;
         private String environmentStatus;
+        private String executionRequestId;
+        private String codexThreadId;
         private TaskWorkflowSignalResponse response;
 
         private StubTaskCoordinationWorkflowClient() {
@@ -118,7 +143,7 @@ class TaskWorkflowControllerTest {
 
         @Override
         public TaskWorkflowState currentState(final String projectId, final String taskId) {
-            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "SRE", "project/constructraos/integration", "requested", "planned integration environment", "E-0001", "qa_requested", 1);
+            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "SRE", "project/constructraos/integration", "requested", "planned integration environment", "T-0001-exec-1", "codex-thread-123", "E-0001", "qa_requested", 1);
         }
 
         @Override
@@ -140,6 +165,24 @@ class TaskWorkflowControllerTest {
             this.note = note;
             this.actorKind = actorKind;
             this.sessionId = sessionId;
+            return response;
+        }
+
+        @Override
+        public TaskWorkflowSignalResponse reportCodexExecutionAccepted(
+            final String projectId,
+            final String taskId,
+            final String executionRequestId,
+            final String codexThreadId,
+            final String specialistRole,
+            final String note
+        ) {
+            this.projectId = projectId;
+            this.taskId = taskId;
+            this.executionRequestId = executionRequestId;
+            this.codexThreadId = codexThreadId;
+            this.actorKind = specialistRole;
+            this.note = note;
             return response;
         }
     }

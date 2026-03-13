@@ -12,6 +12,7 @@ The bootstrap contract covers:
 - bug records
 - branch state
 - test and QA evidence
+- specialist execution requests
 
 ## Design Rules
 
@@ -22,6 +23,7 @@ The bootstrap contract covers:
 - ADRs provide intent and constraints, but they do not replace task or evidence records.
 - Bugs are recorded at the branch where they are observed, but the canonical bug should live at the highest branch level where the issue is confirmed.
 - Evidence records capture what was validated, against which branch and environment, and with what result.
+- Specialist execution requests capture durable work handoff from Temporal to Codex, including execution request ID, specialist role, callback metadata, and attached Codex thread identity when known.
 - This contract is replaceable. New code should treat it as a boundary rather than scattering equivalent state elsewhere.
 
 ## Layout
@@ -40,6 +42,8 @@ projects/constructraos/
   branches/
     index.md
   evidence/
+    index.md
+  executions/
     index.md
 ```
 
@@ -95,6 +99,17 @@ The file name should start with the same ID.
 - linked task or project scope
 - environment expectation
 - current status
+
+## Minimum Execution Request Fields
+
+- execution request ID
+- linked task
+- specialist role
+- target branch or workspace
+- status
+- workflow ID
+- callback signal metadata
+- Codex thread ID when assigned
 
 ## Definition Of Done Baseline
 

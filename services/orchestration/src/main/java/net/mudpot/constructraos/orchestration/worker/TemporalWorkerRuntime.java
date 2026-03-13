@@ -20,6 +20,7 @@ import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.orchestration.system.workflows.HelloWorldWorkflow;
 import net.mudpot.constructraos.commons.orchestration.project.workflows.TaskCoordinationWorkflow;
 import net.mudpot.constructraos.orchestration.config.TemporalWorkerConfig;
+import net.mudpot.constructraos.orchestration.project.activities.CodexActivitiesImpl;
 import net.mudpot.constructraos.orchestration.project.activities.ProjectRecordsActivitiesImpl;
 import net.mudpot.constructraos.orchestration.project.workflows.TaskCoordinationWorkflowImpl;
 import net.mudpot.constructraos.orchestration.system.activities.HelloActivitiesImpl;
@@ -43,6 +44,7 @@ public class TemporalWorkerRuntime {
     private final PromptActivitiesImpl promptActivities;
     private final LlmActivitiesImpl llmActivities;
     private final PolicyEvaluationActivitiesImpl policyEvaluationActivities;
+    private final CodexActivitiesImpl codexActivities;
     private final ProjectRecordsActivitiesImpl projectRecordsActivities;
 
     @Inject
@@ -53,6 +55,7 @@ public class TemporalWorkerRuntime {
         final PromptActivitiesImpl promptActivities,
         final LlmActivitiesImpl llmActivities,
         final PolicyEvaluationActivitiesImpl policyEvaluationActivities,
+        final CodexActivitiesImpl codexActivities,
         final ProjectRecordsActivitiesImpl projectRecordsActivities,
         final OpenTracingOptions openTracingOptions
     ) {
@@ -62,6 +65,7 @@ public class TemporalWorkerRuntime {
         this.promptActivities = promptActivities;
         this.llmActivities = llmActivities;
         this.policyEvaluationActivities = policyEvaluationActivities;
+        this.codexActivities = codexActivities;
         this.projectRecordsActivities = projectRecordsActivities;
         final WorkflowServiceStubs service = WorkflowServiceStubs.newInstance(
             WorkflowServiceStubsOptions.newBuilder().setTarget(config.temporalAddress()).build()
@@ -94,7 +98,7 @@ public class TemporalWorkerRuntime {
     private void registerTaskExecutionWorker() {
         final Worker taskWorker = workerFactory.newWorker(TaskQueues.TASK_COORDINATION);
         taskWorker.registerWorkflowImplementationFactory(TaskCoordinationWorkflow.class, () -> beanContext.createBean(TaskCoordinationWorkflowImpl.class));
-        taskWorker.registerActivitiesImplementations(projectRecordsActivities, policyEvaluationActivities);
+        taskWorker.registerActivitiesImplementations(projectRecordsActivities, policyEvaluationActivities, codexActivities);
     }
 
     @EventListener

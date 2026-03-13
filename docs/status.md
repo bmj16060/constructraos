@@ -23,11 +23,13 @@ Last updated: 2026-03-13
 - The first long-running task workflow slice now exists as a signal-driven Temporal path that can `signalWithStart` a task workflow, query its state, and write QA evidence through the repo-backed project-records boundary.
 - The task workflow now models the first QA -> SRE handoff state, including SRE environment outcome signals and evidence capture for branch-scoped environment readiness.
 - Compose/runtime roots are now explicitly separated between repo-backed project records and mutable execution workspaces so worker filesystem access is deliberate rather than implicit.
+- The SRE execution path is now pivoting to a Codex-mediated model: workflows dispatch durable execution requests and track Codex thread identity instead of assuming the orchestration container directly runs Compose.
+- The first durable Codex execution-request path now exists end to end: workflows write execution requests, API can list them for consumption, and Codex can callback with acceptance and SRE outcomes.
 
 ## Next 3 Tasks
 
-1. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
-2. Add the first actual SRE execution path so the SRE outcome signal can be produced by branch-scoped Compose bring-up and smoke validation rather than only by an external caller.
+1. Add the first true MCP-facing Codex claim path so a real Codex thread can atomically claim a pending execution request instead of relying on a plain API read plus callback pattern.
+2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 
 ## Risks

@@ -3,7 +3,11 @@ package net.mudpot.constructraos.orchestration.project.workflows;
 import io.micronaut.context.annotation.Prototype;
 import io.temporal.workflow.Workflow;
 import jakarta.inject.Named;
+import net.mudpot.constructraos.commons.orchestration.project.activities.CodexActivities;
 import net.mudpot.constructraos.commons.orchestration.project.activities.ProjectRecordsActivities;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionAcceptedSignal;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchResult;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
@@ -13,6 +17,7 @@ import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEv
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import net.mudpot.constructraos.orchestration.core.policy.WorkflowPolicyEnforcer;
 
@@ -23,8 +28,10 @@ import java.util.Map;
 @Prototype
 public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     private final PolicyEvaluationActivities policyEvaluationActivities;
+    private final CodexActivities codexActivities;
     private final ProjectRecordsActivities projectRecordsActivities;
     private final List<TaskQaRequestSignal> pendingQaRequests = new ArrayList<>();
+    private final List<CodexExecutionAcceptedSignal> pendingCodexAcceptedSignals = new ArrayList<>();
     private final List<TaskSreEnvironmentOutcomeSignal> pendingSreEnvironmentOutcomes = new ArrayList<>();
     private String projectId = "";
     private String taskId = "";
@@ -34,6 +41,8 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     private String activeBranch = "";
     private String environmentStatus = "unknown";
     private String environmentName = "";
+    private String activeExecutionRequestId = "";
+    private String codexThreadId = "";
     private String latestEvidenceId = "";
     private String lastEvent = "initialized";
     private int qaRequestCount;
@@ -41,9 +50,11 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
 
     public TaskCoordinationWorkflowImpl(
         @Named("policyEvaluationActivitiesStub") final PolicyEvaluationActivities policyEvaluationActivities,
+        @Named("codexActivitiesStub") final CodexActivities codexActivities,
         @Named("projectRecordsActivitiesStub") final ProjectRecordsActivities projectRecordsActivities
     ) {
         this.policyEvaluationActivities = policyEvaluationActivities;
+        this.codexActivities = codexActivities;
         this.projectRecordsActivities = projectRecordsActivities;
     }
 
@@ -53,9 +64,12 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.taskId = normalize(input == null ? "" : input.taskId());
         this.lastEvent = "workflow_started";
         while (!closed) {
-            Workflow.await(() -> closed || !pendingQaRequests.isEmpty() || !pendingSreEnvironmentOutcomes.isEmpty());
+            Workflow.await(() -> closed || !pendingQaRequests.isEmpty() || !pendingCodexAcceptedSignals.isEmpty() || !pendingSreEnvironmentOutcomes.isEmpty());
             while (!pendingQaRequests.isEmpty()) {
                 handleQaRequest(pendingQaRequests.removeFirst());
+            }
+            while (!pendingCodexAcceptedSignals.isEmpty()) {
+                handleCodexAccepted(pendingCodexAcceptedSignals.removeFirst());
             }
             while (!pendingSreEnvironmentOutcomes.isEmpty()) {
                 handleSreEnvironmentOutcome(pendingSreEnvironmentOutcomes.removeFirst());
@@ -68,6 +82,12 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     public void requestQa(final TaskQaRequestSignal request) {
         pendingQaRequests.add(normalizedSignal(request));
         lastEvent = "qa_signal_received";
+    }
+
+    @Override
+    public void reportCodexExecutionAccepted(final CodexExecutionAcceptedSignal accepted) {
+        pendingCodexAcceptedSignals.add(normalizedAcceptedSignal(accepted));
+        lastEvent = "codex_execution_accept_signal_received";
     }
 
     @Override
@@ -93,6 +113,8 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
             activeBranch,
             environmentStatus,
             environmentName,
+            activeExecutionRequestId,
+            codexThreadId,
             latestEvidenceId,
             lastEvent,
             qaRequestCount
@@ -119,6 +141,38 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         final ProjectTaskRecord taskRecord = projectRecordsActivities.loadTask(projectId, taskId);
         final String branchName = resolveBranchName(taskRecord, request.branchName());
         final ProjectBranchRecord branchRecord = resolveBranchRecord(branchName);
+        final String executionRequestId = nextExecutionRequestId();
+        final CodexExecutionDispatchResult dispatchResult = codexActivities.dispatchExecution(
+            new CodexExecutionDispatchRequest(
+                projectId,
+                taskId,
+                executionRequestId,
+                "SRE",
+                branchName,
+                "runtime/workspaces",
+                Workflow.getInfo().getWorkflowId(),
+                "reportSreEnvironmentOutcome",
+                "reportSreEnvironmentOutcome",
+                normalize(request.requestedByKind()),
+                normalize(request.sessionId()),
+                "Prepare a branch-scoped compose environment for QA and signal the workflow back when ready or failed."
+            )
+        );
+        projectRecordsActivities.writeExecutionRequest(
+            new ProjectExecutionRequestWriteRequest(
+                projectId,
+                taskId,
+                executionRequestId,
+                "SRE",
+                branchName,
+                dispatchResult.status(),
+                dispatchResult.codexThreadId(),
+                Workflow.getInfo().getWorkflowId(),
+                "reportCodexExecutionAccepted",
+                "reportSreEnvironmentOutcome",
+                joinNotes(dispatchResult.note(), request.note())
+            )
+        );
         final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeEvidence(
             new ProjectEvidenceWriteRequest(
                 projectId,
@@ -131,9 +185,10 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
                 List.of(
                     "QA request accepted by the long-running task workflow.",
                     "Branch and task records were loaded from the repo-backed project contract.",
+                    "Codex SRE execution request dispatched for branch environment preparation.",
                     "Awaiting SRE environment preparation and smoke validation."
                 ),
-                normalize(request.note()).isBlank() ? "No additional notes." : normalize(request.note()),
+                joinNotes(dispatchResult.note(), request.note()),
                 normalize(request.requestedByKind()),
                 normalize(request.sessionId()),
                 Workflow.getInfo().getWorkflowId()
@@ -144,9 +199,34 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.waitingOn = "SRE";
         this.environmentStatus = "requested";
         this.environmentName = branchRecord.environment();
+        this.activeExecutionRequestId = executionRequestId;
         this.latestEvidenceId = evidenceRecord.id();
         this.qaRequestCount += 1;
         this.lastEvent = "qa_requested";
+    }
+
+    private void handleCodexAccepted(final CodexExecutionAcceptedSignal accepted) {
+        if (!normalize(accepted.executionRequestId()).equals(activeExecutionRequestId)) {
+            return;
+        }
+        projectRecordsActivities.writeExecutionRequest(
+            new ProjectExecutionRequestWriteRequest(
+                projectId,
+                taskId,
+                activeExecutionRequestId,
+                normalize(accepted.specialistRole()).isBlank() ? "SRE" : normalize(accepted.specialistRole()),
+                activeBranch,
+                "accepted",
+                normalize(accepted.codexThreadId()),
+                Workflow.getInfo().getWorkflowId(),
+                "reportCodexExecutionAccepted",
+                "reportSreEnvironmentOutcome",
+                normalize(accepted.note())
+            )
+        );
+        this.codexThreadId = normalize(accepted.codexThreadId());
+        this.waitingOn = "SRE";
+        this.lastEvent = "codex_execution_accepted";
     }
 
     private void handleSreEnvironmentOutcome(final TaskSreEnvironmentOutcomeSignal outcome) {
@@ -193,6 +273,21 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.environmentStatus = normalize(outcome.status());
         this.environmentName = normalize(outcome.environmentName());
         this.waitingOn = "ready".equalsIgnoreCase(environmentStatus) ? "QA" : "SRE";
+        projectRecordsActivities.writeExecutionRequest(
+            new ProjectExecutionRequestWriteRequest(
+                projectId,
+                taskId,
+                activeExecutionRequestId,
+                "SRE",
+                branchName,
+                "ready".equalsIgnoreCase(environmentStatus) ? "completed" : "failed",
+                codexThreadId,
+                Workflow.getInfo().getWorkflowId(),
+                "reportCodexExecutionAccepted",
+                "reportSreEnvironmentOutcome",
+                normalize(outcome.note())
+            )
+        );
         this.latestEvidenceId = evidenceRecord.id();
         this.lastEvent = "sre_environment_reported";
     }
@@ -237,6 +332,34 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
             normalize(outcome.sessionId()),
             normalize(outcome.note())
         );
+    }
+
+    private static CodexExecutionAcceptedSignal normalizedAcceptedSignal(final CodexExecutionAcceptedSignal accepted) {
+        if (accepted == null) {
+            return new CodexExecutionAcceptedSignal("", "", "", "");
+        }
+        return new CodexExecutionAcceptedSignal(
+            normalize(accepted.executionRequestId()),
+            normalize(accepted.codexThreadId()),
+            normalize(accepted.specialistRole()),
+            normalize(accepted.note())
+        );
+    }
+
+    private String nextExecutionRequestId() {
+        return taskId + "-exec-" + (qaRequestCount + 1);
+    }
+
+    private static String joinNotes(final String first, final String second) {
+        final String left = normalize(first);
+        final String right = normalize(second);
+        if (left.isBlank()) {
+            return right;
+        }
+        if (right.isBlank()) {
+            return left;
+        }
+        return left + "\n\n" + right;
     }
 
     private static String normalize(final String value) {

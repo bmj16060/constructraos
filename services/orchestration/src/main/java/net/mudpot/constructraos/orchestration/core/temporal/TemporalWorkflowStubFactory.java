@@ -7,6 +7,7 @@ import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 import jakarta.inject.Named;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.LlmActivities;
+import net.mudpot.constructraos.commons.orchestration.project.activities.CodexActivities;
 import net.mudpot.constructraos.commons.orchestration.project.activities.ProjectRecordsActivities;
 import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEvaluationActivities;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.PromptActivities;
@@ -77,6 +78,13 @@ public class TemporalWorkflowStubFactory {
     ProjectRecordsActivities projectRecordsActivitiesStub() {
         return Workflow.newActivityStub(ProjectRecordsActivities.class, externalOptions());
     }
+
+    @Prototype
+    @Named("codexActivitiesStub")
+    CodexActivities codexActivitiesStub() {
+        return Workflow.newActivityStub(CodexActivities.class, externalOptions());
+    }
+
 
     private static ActivityOptions externalOptions() {
         return ActivityOptions.newBuilder()

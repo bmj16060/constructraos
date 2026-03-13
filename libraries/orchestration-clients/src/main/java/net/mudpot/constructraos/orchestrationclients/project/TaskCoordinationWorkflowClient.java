@@ -6,6 +6,7 @@ import io.temporal.client.WorkflowOptions;
 import io.temporal.client.WorkflowStub;
 import net.mudpot.constructraos.commons.orchestration.TaskQueues;
 import net.mudpot.constructraos.commons.orchestration.WorkflowNames;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionAcceptedSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
@@ -74,6 +75,32 @@ public class TaskCoordinationWorkflowClient {
             TaskQueues.TASK_COORDINATION,
             "",
             "reportSreEnvironmentOutcome"
+        );
+    }
+
+    public TaskWorkflowSignalResponse reportCodexExecutionAccepted(
+        final String projectId,
+        final String taskId,
+        final String executionRequestId,
+        final String codexThreadId,
+        final String specialistRole,
+        final String note
+    ) {
+        final TaskCoordinationWorkflow workflow = workflowById(workflowId(projectId, taskId));
+        workflow.reportCodexExecutionAccepted(
+            new CodexExecutionAcceptedSignal(
+                normalize(executionRequestId),
+                normalize(codexThreadId),
+                normalize(specialistRole),
+                normalize(note)
+            )
+        );
+        return new TaskWorkflowSignalResponse(
+            WorkflowNames.TASK_COORDINATION,
+            workflowId(projectId, taskId),
+            TaskQueues.TASK_COORDINATION,
+            "",
+            "reportCodexExecutionAccepted"
         );
     }
 

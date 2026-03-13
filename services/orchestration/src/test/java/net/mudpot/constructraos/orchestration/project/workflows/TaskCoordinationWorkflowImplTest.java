@@ -4,7 +4,11 @@ import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.testing.TestWorkflowEnvironment;
 import net.mudpot.constructraos.commons.orchestration.TaskQueues;
+import net.mudpot.constructraos.commons.orchestration.project.activities.CodexActivities;
 import net.mudpot.constructraos.commons.orchestration.project.activities.ProjectRecordsActivities;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionAcceptedSignal;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
+import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchResult;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
@@ -15,6 +19,8 @@ import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +37,7 @@ class TaskCoordinationWorkflowImplTest {
             environment.newWorker(TaskQueues.TASK_COORDINATION)
                 .registerWorkflowImplementationFactory(
                     TaskCoordinationWorkflow.class,
-                    () -> new TaskCoordinationWorkflowImpl(new AllowPolicyActivities(), projectRecordsActivities)
+                    () -> new TaskCoordinationWorkflowImpl(new AllowPolicyActivities(), new StubCodexActivities(), projectRecordsActivities)
                 );
             environment.start();
 
@@ -45,6 +51,10 @@ class TaskCoordinationWorkflowImplTest {
 
             WorkflowClient.start(workflow::run, new TaskWorkflowInput("constructraos", "T-0001", "anonymous", "anon-session-1"));
             workflow.requestQa(new TaskQaRequestSignal("", "anonymous", "anon-session-1", "Request the first QA pass."));
+            environment.sleep(Duration.ofSeconds(1));
+            workflow.reportCodexExecutionAccepted(
+                new CodexExecutionAcceptedSignal("T-0001-exec-1", "codex-thread-123", "SRE", "Accepted by Codex.")
+            );
             environment.sleep(Duration.ofSeconds(1));
             workflow.reportSreEnvironmentOutcome(
                 new net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal(
@@ -67,15 +77,19 @@ class TaskCoordinationWorkflowImplTest {
             assertEquals("QA", state.waitingOn());
             assertEquals("ready", state.environmentStatus());
             assertEquals("branch-env-01", state.environmentName());
+            assertEquals("T-0001-exec-1", state.activeExecutionRequestId());
+            assertEquals("codex-thread-123", state.codexThreadId());
             assertEquals(1, state.qaRequestCount());
             assertEquals("project/constructraos/integration", projectRecordsActivities.latestRequest.branchName());
             assertEquals("sre-environment-outcome", projectRecordsActivities.latestRequest.evidenceType());
+            assertEquals("T-0001-exec-1", projectRecordsActivities.latestExecutionRequest.executionRequestId());
             workflow.close("test-complete");
         }
     }
 
     private static final class CapturingProjectRecordsActivities implements ProjectRecordsActivities {
         private ProjectEvidenceWriteRequest latestRequest;
+        private ProjectExecutionRequestWriteRequest latestExecutionRequest;
         private int evidenceCount;
 
         @Override
@@ -113,6 +127,34 @@ class TaskCoordinationWorkflowImplTest {
                 request.status(),
                 request.validatingSpecialist(),
                 "2026-03-13T00:00:00Z"
+            );
+        }
+
+        @Override
+        public ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
+            this.latestExecutionRequest = request;
+            return new ProjectExecutionRequestRecord(
+                request.executionRequestId(),
+                "/tmp/" + request.executionRequestId() + ".md",
+                request.projectId(),
+                request.taskId(),
+                request.specialistRole(),
+                request.branchName(),
+                request.status(),
+                request.codexThreadId(),
+                request.workflowId()
+            );
+        }
+    }
+
+    private static final class StubCodexActivities implements CodexActivities {
+        @Override
+        public CodexExecutionDispatchResult dispatchExecution(final CodexExecutionDispatchRequest request) {
+            return new CodexExecutionDispatchResult(
+                request.executionRequestId(),
+                "",
+                "dispatched",
+                "Codex request dispatched."
             );
         }
     }
