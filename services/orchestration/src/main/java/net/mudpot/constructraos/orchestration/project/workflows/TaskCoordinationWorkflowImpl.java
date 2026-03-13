@@ -5,6 +5,7 @@ import io.temporal.workflow.Workflow;
 import jakarta.inject.Named;
 import net.mudpot.constructraos.commons.orchestration.project.activities.ProjectRecordsActivities;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
+import net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
 import net.mudpot.constructraos.commons.orchestration.project.workflows.TaskCoordinationWorkflow;
@@ -24,11 +25,15 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     private final PolicyEvaluationActivities policyEvaluationActivities;
     private final ProjectRecordsActivities projectRecordsActivities;
     private final List<TaskQaRequestSignal> pendingQaRequests = new ArrayList<>();
+    private final List<TaskSreEnvironmentOutcomeSignal> pendingSreEnvironmentOutcomes = new ArrayList<>();
     private String projectId = "";
     private String taskId = "";
     private String workflowStatus = "OPEN";
     private String taskStatus = "unknown";
+    private String waitingOn = "NONE";
     private String activeBranch = "";
+    private String environmentStatus = "unknown";
+    private String environmentName = "";
     private String latestEvidenceId = "";
     private String lastEvent = "initialized";
     private int qaRequestCount;
@@ -48,9 +53,12 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.taskId = normalize(input == null ? "" : input.taskId());
         this.lastEvent = "workflow_started";
         while (!closed) {
-            Workflow.await(() -> closed || !pendingQaRequests.isEmpty());
+            Workflow.await(() -> closed || !pendingQaRequests.isEmpty() || !pendingSreEnvironmentOutcomes.isEmpty());
             while (!pendingQaRequests.isEmpty()) {
                 handleQaRequest(pendingQaRequests.removeFirst());
+            }
+            while (!pendingSreEnvironmentOutcomes.isEmpty()) {
+                handleSreEnvironmentOutcome(pendingSreEnvironmentOutcomes.removeFirst());
             }
         }
         this.workflowStatus = "CLOSED";
@@ -63,6 +71,12 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     }
 
     @Override
+    public void reportSreEnvironmentOutcome(final TaskSreEnvironmentOutcomeSignal outcome) {
+        pendingSreEnvironmentOutcomes.add(normalizedOutcome(outcome));
+        lastEvent = "sre_environment_signal_received";
+    }
+
+    @Override
     public void close(final String reason) {
         closed = true;
         lastEvent = normalize(reason).isBlank() ? "workflow_closed" : normalize(reason);
@@ -70,7 +84,19 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
 
     @Override
     public TaskWorkflowState currentState() {
-        return new TaskWorkflowState(projectId, taskId, workflowStatus, taskStatus, activeBranch, latestEvidenceId, lastEvent, qaRequestCount);
+        return new TaskWorkflowState(
+            projectId,
+            taskId,
+            workflowStatus,
+            taskStatus,
+            waitingOn,
+            activeBranch,
+            environmentStatus,
+            environmentName,
+            latestEvidenceId,
+            lastEvent,
+            qaRequestCount
+        );
     }
 
     private void handleQaRequest(final TaskQaRequestSignal request) {
@@ -93,10 +119,11 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         final ProjectTaskRecord taskRecord = projectRecordsActivities.loadTask(projectId, taskId);
         final String branchName = resolveBranchName(taskRecord, request.branchName());
         final ProjectBranchRecord branchRecord = resolveBranchRecord(branchName);
-        final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeQaEvidence(
+        final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeEvidence(
             new ProjectEvidenceWriteRequest(
                 projectId,
                 taskId,
+                "qa-request",
                 branchName,
                 branchRecord.environment(),
                 "QA",
@@ -114,9 +141,60 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         );
         this.taskStatus = taskRecord.status();
         this.activeBranch = branchName;
+        this.waitingOn = "SRE";
+        this.environmentStatus = "requested";
+        this.environmentName = branchRecord.environment();
         this.latestEvidenceId = evidenceRecord.id();
         this.qaRequestCount += 1;
         this.lastEvent = "qa_requested";
+    }
+
+    private void handleSreEnvironmentOutcome(final TaskSreEnvironmentOutcomeSignal outcome) {
+        WorkflowPolicyEnforcer.enforce(
+            policyEvaluationActivities,
+            "workflow.task.report_sre_environment",
+            Map.of(
+                "resource_name", "task_workflow",
+                "actor", Map.of(
+                    "kind", normalize(outcome.reportedByKind()),
+                    "session_id", normalize(outcome.sessionId())
+                ),
+                "request", Map.of(
+                    "project_id", projectId,
+                    "task_id", taskId,
+                    "branch_name", normalize(outcome.branchName()),
+                    "status", normalize(outcome.status())
+                )
+            )
+        );
+        final ProjectTaskRecord taskRecord = projectRecordsActivities.loadTask(projectId, taskId);
+        final String branchName = resolveBranchName(taskRecord, outcome.branchName());
+        final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeEvidence(
+            new ProjectEvidenceWriteRequest(
+                projectId,
+                taskId,
+                "sre-environment-outcome",
+                branchName,
+                normalize(outcome.environmentName()),
+                "SRE",
+                normalize(outcome.status()),
+                List.of(
+                    "SRE reported a branch-scoped environment outcome back to the task coordination workflow.",
+                    "The task workflow recorded the result through the repo-backed evidence boundary."
+                ),
+                normalize(outcome.note()).isBlank() ? "No additional notes." : normalize(outcome.note()),
+                normalize(outcome.reportedByKind()),
+                normalize(outcome.sessionId()),
+                Workflow.getInfo().getWorkflowId()
+            )
+        );
+        this.taskStatus = taskRecord.status();
+        this.activeBranch = branchName;
+        this.environmentStatus = normalize(outcome.status());
+        this.environmentName = normalize(outcome.environmentName());
+        this.waitingOn = "ready".equalsIgnoreCase(environmentStatus) ? "QA" : "SRE";
+        this.latestEvidenceId = evidenceRecord.id();
+        this.lastEvent = "sre_environment_reported";
     }
 
     private ProjectBranchRecord resolveBranchRecord(final String branchName) {
@@ -144,6 +222,20 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
             normalize(request.requestedByKind()),
             normalize(request.sessionId()),
             normalize(request.note())
+        );
+    }
+
+    private static TaskSreEnvironmentOutcomeSignal normalizedOutcome(final TaskSreEnvironmentOutcomeSignal outcome) {
+        if (outcome == null) {
+            return new TaskSreEnvironmentOutcomeSignal("", "", "", "", "", "");
+        }
+        return new TaskSreEnvironmentOutcomeSignal(
+            normalize(outcome.branchName()),
+            normalize(outcome.environmentName()),
+            normalize(outcome.status()),
+            normalize(outcome.reportedByKind()),
+            normalize(outcome.sessionId()),
+            normalize(outcome.note())
         );
     }
 

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TaskCoordinationWorkflowImplTest {
     @Test
-    void requestQaSignalWritesEvidenceAndUpdatesState() {
+    void requestQaAndSreOutcomeSignalsWriteEvidenceAndUpdateState() {
         try (TestWorkflowEnvironment environment = TestWorkflowEnvironment.newInstance()) {
             final CapturingProjectRecordsActivities projectRecordsActivities = new CapturingProjectRecordsActivities();
             environment.newWorker(TaskQueues.TASK_COORDINATION)
@@ -46,21 +46,37 @@ class TaskCoordinationWorkflowImplTest {
             WorkflowClient.start(workflow::run, new TaskWorkflowInput("constructraos", "T-0001", "anonymous", "anon-session-1"));
             workflow.requestQa(new TaskQaRequestSignal("", "anonymous", "anon-session-1", "Request the first QA pass."));
             environment.sleep(Duration.ofSeconds(1));
+            workflow.reportSreEnvironmentOutcome(
+                new net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal(
+                    "project/constructraos/integration",
+                    "branch-env-01",
+                    "ready",
+                    "sre",
+                    "anon-session-1",
+                    "Environment is healthy for QA."
+                )
+            );
+            environment.sleep(Duration.ofSeconds(1));
 
             final TaskWorkflowState state = workflow.currentState();
 
             assertEquals("constructraos", state.projectId());
             assertEquals("T-0001", state.taskId());
             assertEquals("project/constructraos/integration", state.activeBranch());
-            assertEquals("E-0001", state.latestEvidenceId());
+            assertEquals("E-0002", state.latestEvidenceId());
+            assertEquals("QA", state.waitingOn());
+            assertEquals("ready", state.environmentStatus());
+            assertEquals("branch-env-01", state.environmentName());
             assertEquals(1, state.qaRequestCount());
             assertEquals("project/constructraos/integration", projectRecordsActivities.latestRequest.branchName());
+            assertEquals("sre-environment-outcome", projectRecordsActivities.latestRequest.evidenceType());
             workflow.close("test-complete");
         }
     }
 
     private static final class CapturingProjectRecordsActivities implements ProjectRecordsActivities {
         private ProjectEvidenceWriteRequest latestRequest;
+        private int evidenceCount;
 
         @Override
         public ProjectTaskRecord loadTask(final String projectId, final String taskId) {
@@ -84,11 +100,12 @@ class TaskCoordinationWorkflowImplTest {
         }
 
         @Override
-        public ProjectEvidenceRecord writeQaEvidence(final ProjectEvidenceWriteRequest request) {
+        public ProjectEvidenceRecord writeEvidence(final ProjectEvidenceWriteRequest request) {
             this.latestRequest = request;
+            this.evidenceCount += 1;
             return new ProjectEvidenceRecord(
-                "E-0001",
-                "/tmp/E-0001.md",
+                "E-000" + evidenceCount,
+                "/tmp/E-000" + evidenceCount + ".md",
                 request.projectId(),
                 request.taskId(),
                 request.branchName(),

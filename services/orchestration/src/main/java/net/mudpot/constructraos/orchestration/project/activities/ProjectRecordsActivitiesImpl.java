@@ -27,7 +27,7 @@ public class ProjectRecordsActivitiesImpl implements ProjectRecordsActivities {
     }
 
     @Override
-    public ProjectEvidenceRecord writeQaEvidence(final ProjectEvidenceWriteRequest request) {
-        return projectRecordsGateway.writeQaEvidence(request);
+    public ProjectEvidenceRecord writeEvidence(final ProjectEvidenceWriteRequest request) {
+        return projectRecordsGateway.writeEvidence(request);
     }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 public record ProjectEvidenceWriteRequest(
     String projectId,
     String taskId,
+    String evidenceType,
     String branchName,
     String environment,
     String validatingSpecialist,

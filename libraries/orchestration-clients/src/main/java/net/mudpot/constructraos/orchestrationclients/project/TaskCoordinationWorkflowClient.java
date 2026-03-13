@@ -7,6 +7,7 @@ import io.temporal.client.WorkflowStub;
 import net.mudpot.constructraos.commons.orchestration.TaskQueues;
 import net.mudpot.constructraos.commons.orchestration.WorkflowNames;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
+import net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowSignalResponse;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
@@ -44,6 +45,36 @@ public class TaskCoordinationWorkflowClient {
 
     public TaskWorkflowState currentState(final String projectId, final String taskId) {
         return workflowById(workflowId(projectId, taskId)).currentState();
+    }
+
+    public TaskWorkflowSignalResponse reportSreEnvironmentOutcome(
+        final String projectId,
+        final String taskId,
+        final String branchName,
+        final String environmentName,
+        final String status,
+        final String note,
+        final String actorKind,
+        final String sessionId
+    ) {
+        final TaskCoordinationWorkflow workflow = workflowById(workflowId(projectId, taskId));
+        workflow.reportSreEnvironmentOutcome(
+            new TaskSreEnvironmentOutcomeSignal(
+                normalize(branchName),
+                normalize(environmentName),
+                normalize(status),
+                normalize(actorKind),
+                normalize(sessionId),
+                normalize(note)
+            )
+        );
+        return new TaskWorkflowSignalResponse(
+            WorkflowNames.TASK_COORDINATION,
+            workflowId(projectId, taskId),
+            TaskQueues.TASK_COORDINATION,
+            "",
+            "reportSreEnvironmentOutcome"
+        );
     }
 
     private TaskCoordinationWorkflow workflowStub(final String projectId, final String taskId) {

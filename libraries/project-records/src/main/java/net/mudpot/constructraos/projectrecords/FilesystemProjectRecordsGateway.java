@@ -69,9 +69,10 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
     }
 
     @Override
-    public synchronized ProjectEvidenceRecord writeQaEvidence(final ProjectEvidenceWriteRequest request) {
+    public synchronized ProjectEvidenceRecord writeEvidence(final ProjectEvidenceWriteRequest request) {
         final String projectId = normalizeRequired(request.projectId(), "projectId");
         final String taskId = normalizeRequired(request.taskId(), "taskId");
+        final String evidenceType = normalizeRequired(request.evidenceType(), "evidenceType");
         final Path projectDirectory = projectDirectory(projectId);
         final Path evidenceDirectory = projectDirectory.resolve("evidence");
         createDirectories(evidenceDirectory);
@@ -79,7 +80,7 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
         final String evidenceId = nextEvidenceId(evidenceDirectory);
         final Instant createdAt = Instant.now();
         final Path evidencePath = evidenceDirectory.resolve(
-            evidenceId + "-" + slugify(taskId + "-qa-request") + ".md"
+            evidenceId + "-" + slugify(taskId + "-" + evidenceType) + ".md"
         );
 
         writeString(evidencePath, renderEvidenceMarkdown(evidenceId, request, createdAt, evidencePath));
@@ -127,7 +128,8 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
         final Path evidencePath
     ) {
         final StringBuilder builder = new StringBuilder();
-        builder.append("# ").append(evidenceId).append(": QA request for ").append(request.taskId()).append("\n\n");
+        builder.append("# ").append(evidenceId).append(": ").append(humanizeEvidenceType(request.evidenceType())).append(" for ").append(request.taskId()).append("\n\n");
+        builder.append("- Evidence type: ").append(nullToBlank(request.evidenceType())).append("\n");
         builder.append("- Status: ").append(nullToBlank(request.status())).append("\n");
         builder.append("- Project: ").append(nullToBlank(request.projectId())).append("\n");
         builder.append("- Task: ").append(nullToBlank(request.taskId())).append("\n");
@@ -351,6 +353,25 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
 
     private static String nullToBlank(final String value) {
         return value == null ? "" : value;
+    }
+
+    private static String humanizeEvidenceType(final String value) {
+        final String normalized = nullToBlank(value).trim();
+        if (normalized.isBlank()) {
+            return "Evidence";
+        }
+        final String[] parts = normalized.split("-");
+        final StringBuilder builder = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(' ');
+            }
+            builder.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return builder.toString();
     }
 
     private static Path resolveRootDirectory(final Path configuredPath) {

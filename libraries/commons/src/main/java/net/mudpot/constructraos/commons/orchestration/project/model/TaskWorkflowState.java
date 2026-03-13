@@ -5,7 +5,10 @@ public record TaskWorkflowState(
     String taskId,
     String workflowStatus,
     String taskStatus,
+    String waitingOn,
     String activeBranch,
+    String environmentStatus,
+    String environmentName,
     String latestEvidenceId,
     String lastEvent,
     int qaRequestCount

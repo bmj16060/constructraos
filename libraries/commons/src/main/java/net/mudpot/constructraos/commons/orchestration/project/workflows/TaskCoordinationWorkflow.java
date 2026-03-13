@@ -5,6 +5,7 @@ import io.temporal.workflow.SignalMethod;
 import io.temporal.workflow.WorkflowInterface;
 import io.temporal.workflow.WorkflowMethod;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskQaRequestSignal;
+import net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowInput;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
 
@@ -15,6 +16,9 @@ public interface TaskCoordinationWorkflow {
 
     @SignalMethod
     void requestQa(TaskQaRequestSignal request);
+
+    @SignalMethod
+    void reportSreEnvironmentOutcome(TaskSreEnvironmentOutcomeSignal outcome);
 
     @SignalMethod
     void close(String reason);

@@ -32,14 +32,15 @@ class FilesystemProjectRecordsGatewayTest {
     }
 
     @Test
-    void writeQaEvidenceCreatesRecordAndUpdatesIndexes() throws IOException {
+    void writeEvidenceCreatesRecordAndUpdatesIndexes() throws IOException {
         final Path projectRoot = seedProjectTree();
         final FilesystemProjectRecordsGateway gateway = new FilesystemProjectRecordsGateway(projectRoot.getParent());
 
-        final ProjectEvidenceRecord evidenceRecord = gateway.writeQaEvidence(
+        final ProjectEvidenceRecord evidenceRecord = gateway.writeEvidence(
             new ProjectEvidenceWriteRequest(
                 "constructraos",
                 "T-0001",
+                "qa-request",
                 "project/constructraos/integration",
                 "planned integration environment",
                 "QA",

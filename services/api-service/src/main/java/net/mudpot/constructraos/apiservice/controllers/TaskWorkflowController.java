@@ -89,6 +89,37 @@ public class TaskWorkflowController {
         }
     }
 
+    @Post("/{projectId}/tasks/{taskId}/sre-environment-outcomes")
+    public MutableHttpResponse<TaskWorkflowSignalResponse> reportSreEnvironmentOutcome(
+        final HttpRequest<?> httpRequest,
+        @PathVariable final String projectId,
+        @PathVariable final String taskId,
+        @Body final TaskSreEnvironmentOutcomeBody request
+    ) {
+        final String normalizedProjectId = normalize(projectId);
+        final String normalizedTaskId = normalize(taskId);
+        final TaskSreEnvironmentOutcomeBody normalizedRequest = request == null
+            ? new TaskSreEnvironmentOutcomeBody("", "", "", "")
+            : request;
+        final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
+        requireAuth("project.task.sre_environment.report", normalizedProjectId, normalizedTaskId, session);
+        return anonymousSessionService.attachCookieIfNeeded(
+            HttpResponse.ok(
+                taskCoordinationWorkflowClient.reportSreEnvironmentOutcome(
+                    normalizedProjectId,
+                    normalizedTaskId,
+                    normalizedRequest.branchName(),
+                    normalizedRequest.environmentName(),
+                    normalizedRequest.status(),
+                    normalizedRequest.note(),
+                    session.actorKind(),
+                    session.sessionId()
+                )
+            ),
+            session
+        );
+    }
+
     private void requireAuth(final String action, final String projectId, final String taskId, final AnonymousSession session) {
         final Map<String, Object> actor = Map.of(
             "kind", session.actorKind(),
@@ -113,5 +144,8 @@ public class TaskWorkflowController {
     }
 
     record TaskQaRequestBody(String branchName, String note) {
+    }
+
+    record TaskSreEnvironmentOutcomeBody(String branchName, String environmentName, String status, String note) {
     }
 }

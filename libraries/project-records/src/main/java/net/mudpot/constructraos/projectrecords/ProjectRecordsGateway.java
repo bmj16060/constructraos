@@ -10,5 +10,5 @@ public interface ProjectRecordsGateway {
 
     ProjectBranchRecord loadBranch(String projectId, String branchName);
 
-    ProjectEvidenceRecord writeQaEvidence(ProjectEvidenceWriteRequest request);
+    ProjectEvidenceRecord writeEvidence(ProjectEvidenceWriteRequest request);
 }

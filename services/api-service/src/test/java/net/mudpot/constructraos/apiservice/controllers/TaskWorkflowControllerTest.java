@@ -60,6 +60,29 @@ class TaskWorkflowControllerTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
     }
 
+    @Test
+    void reportSreEnvironmentOutcomeSignalsWorkflowWhenPolicyAllows() {
+        final StubTaskCoordinationWorkflowClient client = new StubTaskCoordinationWorkflowClient();
+        client.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportSreEnvironmentOutcome");
+        final TaskWorkflowController controller = new TaskWorkflowController(client, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
+
+        final TaskWorkflowSignalResponse response = controller.reportSreEnvironmentOutcome(
+            HttpRequest.POST("/api/projects/constructraos/tasks/T-0001/sre-environment-outcomes", Map.of()),
+            "constructraos",
+            "T-0001",
+            new TaskWorkflowController.TaskSreEnvironmentOutcomeBody(
+                "project/constructraos/integration",
+                "branch-env-01",
+                "ready",
+                "Compose environment rebuilt successfully."
+            )
+        ).body();
+
+        assertEquals("branch-env-01", client.environmentName);
+        assertEquals("ready", client.environmentStatus);
+        assertEquals("reportSreEnvironmentOutcome", response.signalName());
+    }
+
     private static final class StubTaskCoordinationWorkflowClient extends TaskCoordinationWorkflowClient {
         private String projectId;
         private String taskId;
@@ -67,6 +90,8 @@ class TaskWorkflowControllerTest {
         private String note;
         private String actorKind;
         private String sessionId;
+        private String environmentName;
+        private String environmentStatus;
         private TaskWorkflowSignalResponse response;
 
         private StubTaskCoordinationWorkflowClient() {
@@ -93,7 +118,29 @@ class TaskWorkflowControllerTest {
 
         @Override
         public TaskWorkflowState currentState(final String projectId, final String taskId) {
-            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "project/constructraos/integration", "E-0001", "qa_requested", 1);
+            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "SRE", "project/constructraos/integration", "requested", "planned integration environment", "E-0001", "qa_requested", 1);
+        }
+
+        @Override
+        public TaskWorkflowSignalResponse reportSreEnvironmentOutcome(
+            final String projectId,
+            final String taskId,
+            final String branchName,
+            final String environmentName,
+            final String status,
+            final String note,
+            final String actorKind,
+            final String sessionId
+        ) {
+            this.projectId = projectId;
+            this.taskId = taskId;
+            this.branchName = branchName;
+            this.environmentName = environmentName;
+            this.environmentStatus = status;
+            this.note = note;
+            this.actorKind = actorKind;
+            this.sessionId = sessionId;
+            return response;
         }
     }
 

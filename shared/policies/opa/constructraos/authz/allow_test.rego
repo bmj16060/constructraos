@@ -32,6 +32,10 @@ test_project_task_qa_request_allowed if {
   allow with input as {"action": "project.task.qa_request"}
 }
 
+test_project_task_sre_environment_report_allowed if {
+  allow with input as {"action": "project.task.sre_environment.report"}
+}
+
 test_workflow_task_request_qa_allowed_for_project_and_task if {
   allow with input as {
     "action": "workflow.task.request_qa",
@@ -48,6 +52,30 @@ test_workflow_task_request_qa_denied_without_task if {
     "request": {
       "project_id": "constructraos",
       "task_id": "",
+    },
+  }
+}
+
+test_workflow_task_report_sre_environment_allowed_with_required_fields if {
+  allow with input as {
+    "action": "workflow.task.report_sre_environment",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+      "branch_name": "project/constructraos/integration",
+      "status": "ready",
+    },
+  }
+}
+
+test_workflow_task_report_sre_environment_denied_without_branch if {
+  not allow with input as {
+    "action": "workflow.task.report_sre_environment",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+      "branch_name": "",
+      "status": "ready",
     },
   }
 }
