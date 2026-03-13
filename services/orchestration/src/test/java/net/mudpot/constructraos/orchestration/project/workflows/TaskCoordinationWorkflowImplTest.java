@@ -22,14 +22,24 @@ import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWrit
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
+import net.mudpot.constructraos.orchestration.project.activities.ProjectRecordsActivitiesImpl;
+import net.mudpot.constructraos.projectrecords.FilesystemProjectRecordsGateway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TaskCoordinationWorkflowImplTest {
+    @TempDir
+    Path tempDir;
+
     @Test
     void requestQaAndSreOutcomeSignalsWriteEvidenceAndUpdateState() {
         try (TestWorkflowEnvironment environment = TestWorkflowEnvironment.newInstance()) {
@@ -83,6 +93,67 @@ class TaskCoordinationWorkflowImplTest {
             assertEquals("project/constructraos/integration", projectRecordsActivities.latestRequest.branchName());
             assertEquals("sre-environment-outcome", projectRecordsActivities.latestRequest.evidenceType());
             assertEquals("T-0001-exec-1", projectRecordsActivities.latestExecutionRequest.executionRequestId());
+            workflow.close("test-complete");
+        }
+    }
+
+    @Test
+    void workflowPersistsRealExecutionAndEvidenceRecords() throws IOException {
+        final Path projectRoot = seedProjectTree();
+        final FilesystemProjectRecordsGateway gateway = new FilesystemProjectRecordsGateway(projectRoot.getParent().toString());
+        final ProjectRecordsActivitiesImpl projectRecordsActivities = new ProjectRecordsActivitiesImpl(gateway);
+
+        try (TestWorkflowEnvironment environment = TestWorkflowEnvironment.newInstance()) {
+            environment.newWorker(TaskQueues.TASK_COORDINATION)
+                .registerWorkflowImplementationFactory(
+                    TaskCoordinationWorkflow.class,
+                    () -> new TaskCoordinationWorkflowImpl(new AllowPolicyActivities(), new StubCodexActivities(), projectRecordsActivities)
+                );
+            environment.start();
+
+            final TaskCoordinationWorkflow workflow = environment.getWorkflowClient().newWorkflowStub(
+                TaskCoordinationWorkflow.class,
+                WorkflowOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.TASK_COORDINATION)
+                    .setWorkflowId("project-constructraos-task-t-0001")
+                    .build()
+            );
+
+            WorkflowClient.start(workflow::run, new TaskWorkflowInput("constructraos", "T-0001", "anonymous", "anon-session-1"));
+            workflow.requestQa(new TaskQaRequestSignal("", "anonymous", "anon-session-1", "Real records QA request."));
+            environment.sleep(Duration.ofSeconds(1));
+            workflow.reportCodexExecutionAccepted(
+                new CodexExecutionAcceptedSignal("T-0001-exec-1", "codex-thread-123", "SRE", "Accepted.")
+            );
+            environment.sleep(Duration.ofSeconds(1));
+            workflow.reportSreEnvironmentOutcome(
+                new net.mudpot.constructraos.commons.orchestration.project.model.TaskSreEnvironmentOutcomeSignal(
+                    "project/constructraos/integration",
+                    "branch-env-01",
+                    "ready",
+                    "sre",
+                    "anon-session-1",
+                    "Environment is healthy for QA."
+                )
+            );
+            environment.sleep(Duration.ofSeconds(1));
+
+            final TaskWorkflowState state = workflow.currentState();
+            final String executionIndex = Files.readString(projectRoot.resolve("executions").resolve("index.md"));
+            final String evidenceIndex = Files.readString(projectRoot.resolve("evidence").resolve("index.md"));
+            final String taskRecord = Files.readString(projectRoot.resolve("tasks").resolve("T-0001-bootstrap-project-contract.md"));
+
+            assertEquals("T-0001-exec-1", state.activeExecutionRequestId());
+            assertEquals("codex-thread-123", state.codexThreadId());
+            assertEquals("ready", state.environmentStatus());
+            assertTrue(executionIndex.contains("T-0001-exec-1"));
+            assertTrue(executionIndex.contains("completed"));
+            assertTrue(executionIndex.contains("codex-thread-123"));
+            assertTrue(evidenceIndex.contains("E-0001"));
+            assertTrue(evidenceIndex.contains("E-0002"));
+            assertTrue(taskRecord.contains("E-0001"));
+            assertTrue(taskRecord.contains("E-0002"));
+
             workflow.close("test-complete");
         }
     }
@@ -164,5 +235,42 @@ class TaskCoordinationWorkflowImplTest {
         public PolicyEvaluationResult evaluatePolicy(final PolicyEvaluationRequest request) {
             return new PolicyEvaluationResult(true, "allowed", "constructraos.v1");
         }
+    }
+
+    private Path seedProjectTree() throws IOException {
+        final Path projectsRoot = tempDir.resolve("projects");
+        final Path projectRoot = projectsRoot.resolve("constructraos");
+        Files.createDirectories(projectRoot.resolve("tasks"));
+        Files.createDirectories(projectRoot.resolve("branches"));
+        Files.createDirectories(projectRoot.resolve("evidence"));
+        Files.createDirectories(projectRoot.resolve("executions"));
+        Files.writeString(
+            projectRoot.resolve("tasks").resolve("T-0001-bootstrap-project-contract.md"),
+            """
+            # T-0001: Bootstrap project filesystem contract
+
+            - Status: in_progress
+            - Owning specialist: PM
+            - Parent control branch: `project/constructraos/integration`
+            - Specialist branches: none yet
+            - Linked ADRs:
+              - [ADR-0001](/tmp/adr)
+            - Linked bugs: none
+            - Latest evidence: none
+            """
+        );
+        Files.writeString(
+            projectRoot.resolve("branches").resolve("index.md"),
+            """
+            # Branch Index
+
+            | Branch | Role | Scope | Environment | Status |
+            | --- | --- | --- | --- | --- |
+            | `project/constructraos/integration` | project control branch | ConstructraOS project roll-up branch | planned integration environment | planned |
+            """
+        );
+        Files.writeString(projectRoot.resolve("evidence").resolve("index.md"), "# Evidence Index\n\nNo QA or test evidence has been recorded yet.\n");
+        Files.writeString(projectRoot.resolve("executions").resolve("index.md"), "# Execution Request Index\n\nNo specialist execution requests have been recorded yet.\n");
+        return projectRoot;
     }
 }
