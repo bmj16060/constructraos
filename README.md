@@ -1,8 +1,8 @@
 # ConstructraOS
 
-ConstructraOS is based on the reusable [starterkit](https://github.com/bmj16060/starterkit) baseline and is ready to begin building out the real ConstructraOS domain.
+ConstructraOS is a reusable full-stack baseline derived from [starterkit](https://github.com/bmj16060/starterkit).
 
-It provides a reusable full-stack starting point built on:
+It includes:
 
 - a Micronaut API boundary
 - Temporal-backed orchestration
@@ -12,7 +12,14 @@ It provides a reusable full-stack starting point built on:
 - OPA-backed policy evaluation
 - a React/Vite UI shell served by `nginx`
 
-The shipped demo is intentionally small: a single `hello-world` workflow that renders a prompt, calls the shared LLM activity path, persists run history, and exposes that history in the UI.
+What it does today:
+
+- serves a small UI shell through `nginx`
+- exposes API endpoints for `/api/session`, `/api/workflows/hello-world/run`, `/api/workflows/hello-world/start`, and `/api/workflows/hello-world/history`
+- runs a Temporal-backed `hello-world` workflow
+- evaluates policy through OPA and the policy service
+- persists workflow run history in Postgres
+- emits traces through OpenTelemetry and Jaeger
 
 The local deployment stack uses one durable PostgreSQL instance with separate logical databases for:
 
@@ -26,7 +33,7 @@ The baseline also includes a signed anonymous session cookie. There is still no 
 
 - Something you can clone, build, and deploy locally without domain-specific baggage.
 - A codebase Codex can enter quickly.
-- Clear seams for adding a real domain, starting with discovery rather than premature implementation.
+- Clear seams for future domain work without embedding domain-specific code into the baseline first.
 - Documented patterns for workflows, policy, persistence, tracing, caching, and frontend data flow.
 
 ## First Codex Prompt

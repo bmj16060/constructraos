@@ -4,7 +4,7 @@ Last updated: 2026-03-13
 
 ## Current Focus
 
-- ConstructraOS is based on the reusable starterkit at [github.com/bmj16060/starterkit](https://github.com/bmj16060/starterkit) and is ready to begin building out the real ConstructraOS domain.
+- ConstructraOS is the reusable baseline derived from [github.com/bmj16060/starterkit](https://github.com/bmj16060/starterkit).
 - Keep the shipped demo intentionally small: one LLM-backed `hello-world` workflow plus persisted history.
 - Preserve the full core spine: API, orchestration, PostgreSQL, Valkey, tracing, policy/OPA, and UI shell.
 - The baseline uses an anonymous session boundary for request identity and policy input.
@@ -12,15 +12,15 @@ Last updated: 2026-03-13
 
 ## In Progress
 
-- The baseline is ready for the next domain-discovery interview and first durable slice.
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
+- Baseline docs are being kept aligned with the current reset state so they describe only what exists today.
 
 ## Next 3 Tasks
 
-1. Run a fresh discovery interview for the next real domain and define the first durable workflow and data slice.
-2. Verify the full `docker compose up --build` path end to end, including UI, API, Temporal, policy, and persisted history.
-3. Keep the baseline docs and patterns aligned as the first domain-specific implementation is introduced.
+1. Verify the full `docker compose up --build` path end to end, including UI, API, Temporal, policy, and persisted history.
+2. Remove any remaining stale baseline wording where docs or UI copy drift from the current repo state.
+3. Keep the baseline docs and patterns aligned before introducing any new domain-specific work.
 
 ## Risks
 
