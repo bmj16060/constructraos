@@ -32,7 +32,7 @@ The baseline also includes a signed anonymous session cookie. There is still no 
 ## What This Repo Optimizes For
 
 - A clean baseline for building ConstructraOS.
-- A codebase that can be cloned, built, run locally, and understood quickly.
+- A practical starting point for developing ConstructraOS locally.
 - Clear seams for adding the real ConstructraOS domain without rewriting the baseline first.
 - Documented patterns for workflows, policy, persistence, tracing, caching, and frontend data flow.
 
