@@ -1,0 +1,28 @@
+plugins {
+    id 'io.micronaut.library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+micronaut {
+    version(micronautVersion)
+    testRuntime('junit5')
+    processing {
+        incremental(true)
+        annotations('net.mudpot.constructraos.*')
+    }
+}
+
+dependencies {
+    implementation platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor 'io.micronaut:micronaut-inject-java'
+    annotationProcessor 'io.micronaut.data:micronaut-data-processor'
+    implementation 'io.micronaut:micronaut-runtime'
+    implementation 'io.micronaut.data:micronaut-data-jdbc'
+    implementation project(':libraries:commons')
+}

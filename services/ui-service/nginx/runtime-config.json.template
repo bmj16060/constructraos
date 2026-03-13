@@ -1,0 +1,34 @@
+{
+  "serviceShortcuts": [
+    {
+      "name": "API health",
+      "href": "${UI_PUBLIC_API_URL}",
+      "description": "Micronaut API boundary and session bootstrap path."
+    },
+    {
+      "name": "Orchestration health",
+      "href": "${UI_PUBLIC_ORCHESTRATION_URL}",
+      "description": "Temporal worker runtime and workflow activity host."
+    },
+    {
+      "name": "Policy health",
+      "href": "${UI_PUBLIC_POLICY_URL}",
+      "description": "Micronaut adapter that fronts OPA policy decisions."
+    },
+    {
+      "name": "OPA",
+      "href": "${UI_PUBLIC_OPA_URL}",
+      "description": "Raw Open Policy Agent API and loaded Rego bundle."
+    },
+    {
+      "name": "Temporal UI",
+      "href": "${UI_PUBLIC_TEMPORAL_UI_URL}",
+      "description": "Workflow history, task queues, and execution inspection."
+    },
+    {
+      "name": "Jaeger",
+      "href": "${UI_PUBLIC_JAEGER_URL}",
+      "description": "Distributed trace search across browser, API, and worker spans."
+    }
+  ]
+}

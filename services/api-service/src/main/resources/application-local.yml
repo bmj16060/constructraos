@@ -1,0 +1,23 @@
+micronaut:
+  server:
+    port: 8080
+    cors:
+      enabled: true
+      configurations:
+        local-ui:
+          allowed-origins:
+            - http://localhost:5173
+            - http://localhost:8090
+          allowed-methods:
+            - GET
+            - POST
+            - OPTIONS
+          allowed-headers:
+            - Content-Type
+            - Accept
+
+policy:
+  service-url: http://localhost:8082
+
+anon-session:
+  signing-secret: constructraos-local-anon-session-secret

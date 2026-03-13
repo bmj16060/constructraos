@@ -1,0 +1,30 @@
+plugins {
+    id 'io.micronaut.library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+micronaut {
+    version(micronautVersion)
+    testRuntime('junit5')
+    processing {
+        incremental(true)
+        annotations('net.mudpot.constructraos.*')
+    }
+}
+
+dependencies {
+    implementation platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor 'io.micronaut:micronaut-inject-java'
+    implementation 'io.micronaut:micronaut-inject'
+    implementation 'io.micronaut:micronaut-runtime'
+    implementation project(':libraries:commons')
+    implementation "io.temporal:temporal-sdk:${project.findProperty('temporalSdkVersion')}"
+    implementation "io.temporal:temporal-opentracing:${project.findProperty('temporalSdkVersion')}"
+    implementation 'io.opentelemetry:opentelemetry-opentracing-shim'
+}

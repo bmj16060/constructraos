@@ -1,0 +1,176 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-constructraos}
+      POSTGRES_USER: ${POSTGRES_USER:-constructraos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-constructraos}
+    ports:
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-constructraos} -d ${POSTGRES_DB:-constructraos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${VALKEY_HOST_PORT:-16379}:6379"
+
+  temporal:
+    image: temporalio/auto-setup:1.29.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-constructraos}
+      POSTGRES_PWD: ${POSTGRES_PASSWORD:-constructraos}
+      POSTGRES_SEEDS: postgres
+      DBNAME: ${TEMPORAL_DB:-temporal}
+      VISIBILITY_DBNAME: ${TEMPORAL_VISIBILITY_DB:-temporal_visibility}
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CLI_ADDRESS: temporal:7233
+    ports:
+      - "${TEMPORAL_HOST_PORT:-17233}:7233"
+    volumes:
+      - ./infra/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+
+  temporal-ui:
+    image: temporalio/ui:2.43.3
+    depends_on:
+      - temporal
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+    ports:
+      - "${TEMPORAL_UI_HOST_PORT:-18233}:8080"
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.75.0
+    ports:
+      - "${JAEGER_UI_HOST_PORT:-18686}:16686"
+      - "${OTEL_GRPC_HOST_PORT:-14317}:4317"
+      - "${OTEL_HTTP_HOST_PORT:-14318}:4318"
+
+  opa:
+    image: openpolicyagent/opa:1.3.0-static
+    command: ["run", "--server", "--addr=0.0.0.0:8181", "--set=decision_logs.console=true", "/policies"]
+    ports:
+      - "${OPA_HOST_PORT:-18181}:8181"
+    volumes:
+      - ./shared/policies/opa:/policies:ro
+
+  policy-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: policy-service
+    depends_on:
+      - opa
+    environment:
+      POLICY_OPA_URL: http://opa:8181
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_TRACES_SAMPLER: always_on
+    ports:
+      - "${POLICY_SERVICE_HOST_PORT:-18082}:8082"
+
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+      policy-service:
+        condition: service_started
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-constructraos}
+      POSTGRES_USER: ${POSTGRES_USER:-constructraos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-constructraos}
+      TEMPORAL_ADDRESS: temporal:7233
+      POLICY_SERVICE_URL: http://policy-service:8082
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_TRACES_SAMPLER: always_on
+      GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
+      GRAPH_URI: ${GRAPH_URI:-}
+    ports:
+      - "${API_SERVICE_HOST_PORT:-18080}:8080"
+
+  orchestration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: orchestration
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+      valkey:
+        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-constructraos}
+      POSTGRES_USER: ${POSTGRES_USER:-constructraos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-constructraos}
+      TEMPORAL_ADDRESS: temporal:7233
+      VALKEY_ENABLED: "true"
+      VALKEY_HOST: valkey
+      VALKEY_PORT: 6379
+      AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-openai-compatible}
+      AI_OPENAI_BASE_URL: ${AI_OPENAI_BASE_URL:-http://host.docker.internal:1234/v1}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_OPENAI_DEFAULT_MODEL: ${AI_OPENAI_DEFAULT_MODEL:-qwen/qwen3-next-80b}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      AI_ANTHROPIC_BASE_URL: ${AI_ANTHROPIC_BASE_URL:-https://api.anthropic.com/v1/messages}
+      AI_ANTHROPIC_API_VERSION: ${AI_ANTHROPIC_API_VERSION:-2023-06-01}
+      AI_ANTHROPIC_DEFAULT_MODEL: ${AI_ANTHROPIC_DEFAULT_MODEL:-claude-sonnet-4-6}
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_TRACES_SAMPLER: always_on
+      POLICY_SERVICE_URL: http://policy-service:8082
+      GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
+      GRAPH_URI: ${GRAPH_URI:-}
+    ports:
+      - "${ORCHESTRATION_HOST_PORT:-18081}:8081"
+
+  ui-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: ui-service
+    depends_on:
+      - api-service
+    environment:
+      UI_API_PROXY_BASE_URL: http://api-service:8080
+      UI_OTLP_PROXY_BASE_URL: http://jaeger:4318
+      UI_PUBLIC_API_URL: http://localhost:${API_SERVICE_HOST_PORT:-18080}/api/healthz
+      UI_PUBLIC_ORCHESTRATION_URL: http://localhost:${ORCHESTRATION_HOST_PORT:-18081}/healthz
+      UI_PUBLIC_POLICY_URL: http://localhost:${POLICY_SERVICE_HOST_PORT:-18082}/healthz
+      UI_PUBLIC_OPA_URL: http://localhost:${OPA_HOST_PORT:-18181}
+      UI_PUBLIC_TEMPORAL_UI_URL: http://localhost:${TEMPORAL_UI_HOST_PORT:-18233}
+      UI_PUBLIC_JAEGER_URL: http://localhost:${JAEGER_UI_HOST_PORT:-18686}
+    volumes:
+      - ./services/ui-service/build/frontend-static:/var/run/constructraos-ui-overlay:ro
+    ports:
+      - "${UI_SERVICE_HOST_PORT:-18090}:8090"
+
+volumes:
+  postgres-data:

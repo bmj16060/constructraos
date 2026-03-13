@@ -1,0 +1,8 @@
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:5432/constructraos
+
+valkey:
+  enabled: true
+  host: localhost
+  port: 6379

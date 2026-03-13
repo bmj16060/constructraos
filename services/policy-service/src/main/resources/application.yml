@@ -1,0 +1,19 @@
+micronaut:
+  application:
+    name: policy-service
+  server:
+    port: 8082
+
+policy:
+  opa-url: ${POLICY_OPA_URL:`http://127.0.0.1:8181`}
+
+otel:
+  traces:
+    exporter: ${OTEL_TRACES_EXPORTER:none}
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:`http://localhost:4318`}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+  service:
+    name: ${OTEL_SERVICE_NAME:policy-service}
+  propagators: tracecontext,baggage

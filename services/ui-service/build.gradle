@@ -1,0 +1,65 @@
+plugins {
+    id 'base'
+}
+
+def resolveGitSha = {
+    try {
+        providers.exec {
+            commandLine 'git', '-C', rootProject.rootDir.absolutePath, 'rev-parse', '--short=12', 'HEAD'
+        }.standardOutput.asText.get().trim()
+    } catch (Exception ignored) {
+        'dev'
+    }
+}
+def imageTag = (project.findProperty('imageTag') ?: System.getenv('IMAGE_TAG') ?: resolveGitSha()).toString()
+def registryPrefix = (project.findProperty('registryPrefix') ?: System.getenv('REGISTRY_PREFIX') ?: 'constructraos').toString()
+def imageRef = "${registryPrefix}/${project.name}:${imageTag}"
+def frontendDir = layout.projectDirectory.dir('frontend')
+def frontendStaticDir = layout.buildDirectory.dir('frontend-static')
+def npmExecutable = providers.exec {
+    commandLine 'bash', '-lc', 'command -v npm'
+}.standardOutput.asText.map { it.trim() }.getOrElse('npm')
+
+tasks.register('npmInstallFrontend', Exec) {
+    workingDir(frontendDir.asFile)
+    commandLine(npmExecutable, 'ci')
+}
+
+tasks.register('buildFrontendAssets', Exec) {
+    dependsOn(tasks.named('npmInstallFrontend'))
+    workingDir(frontendDir.asFile)
+    commandLine(npmExecutable, 'run', 'build', '--', '--outDir', frontendStaticDir.get().asFile.absolutePath)
+}
+
+tasks.register('lint', Exec) {
+    dependsOn(tasks.named('npmInstallFrontend'))
+    workingDir(frontendDir.asFile)
+    commandLine(npmExecutable, 'run', 'lint')
+}
+
+tasks.register('test', Exec) {
+    dependsOn(tasks.named('npmInstallFrontend'))
+    workingDir(frontendDir.asFile)
+    commandLine(npmExecutable, 'test', '--', '--run')
+}
+
+tasks.named('assemble') {
+    dependsOn(tasks.named('buildFrontendAssets'))
+}
+
+tasks.named('check') {
+    dependsOn(tasks.named('lint'))
+    dependsOn(tasks.named('test'))
+}
+
+tasks.register('dockerBuild', Exec) {
+    dependsOn(tasks.named('buildFrontendAssets'))
+    workingDir(project.projectDir)
+    commandLine('docker', 'build', '-t', imageRef, '.')
+}
+
+tasks.register('dockerPush', Exec) {
+    dependsOn(tasks.named('dockerBuild'))
+    workingDir(project.projectDir)
+    commandLine('docker', 'push', imageRef)
+}

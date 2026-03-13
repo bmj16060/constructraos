@@ -1,0 +1,35 @@
+:root {
+  color: #eff7fd;
+  background:
+    radial-gradient(circle at top left, rgba(18, 94, 130, 0.42), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 190, 116, 0.18), transparent 28%),
+    #060b13;
+  font-family: "IBM Plex Sans", "Avenir Next", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}

@@ -1,0 +1,63 @@
+micronaut:
+  application:
+    name: orchestration
+  server:
+    port: 8081
+
+datasources:
+  default:
+    db-type: postgres
+    dialect: POSTGRES
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:5432}/${POSTGRES_DB:constructraos}
+    username: ${POSTGRES_USER:constructraos}
+    password: ${POSTGRES_PASSWORD:constructraos}
+    schema-generate: NONE
+    maximum-pool-size: 10
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+      locations:
+        - classpath:db/migration
+
+temporal:
+  address: ${TEMPORAL_ADDRESS:127.0.0.1:7233}
+  namespace: ${TEMPORAL_NAMESPACE:default}
+  task-queue: hello-world-task-queue
+
+ai:
+  default-provider: ${AI_DEFAULT_PROVIDER:openai-compatible}
+  openai:
+    base-url: ${AI_OPENAI_BASE_URL:`http://127.0.0.1:1234/v1`}
+    api-key: ${AI_OPENAI_API_KEY:}
+    default-model: ${AI_OPENAI_DEFAULT_MODEL:qwen/qwen3-next-80b}
+  anthropic:
+    api-key: ${AI_ANTHROPIC_API_KEY:}
+    base-url: ${AI_ANTHROPIC_BASE_URL:`https://api.anthropic.com/v1/messages`}
+    api-version: ${AI_ANTHROPIC_API_VERSION:2023-06-01}
+    default-model: ${AI_ANTHROPIC_DEFAULT_MODEL:claude-sonnet-4-6}
+
+valkey:
+  enabled: ${VALKEY_ENABLED:false}
+  host: ${VALKEY_HOST:127.0.0.1}
+  port: ${VALKEY_PORT:6379}
+
+graph:
+  enabled: ${GRAPH_ENABLED:false}
+  uri: ${GRAPH_URI:}
+
+policy:
+  service-url: ${POLICY_SERVICE_URL:`http://127.0.0.1:8082`}
+  service-enforce: ${POLICY_SERVICE_ENFORCE:true}
+
+otel:
+  traces:
+    exporter: ${OTEL_TRACES_EXPORTER:none}
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:`http://localhost:4318`}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+  service:
+    name: ${OTEL_SERVICE_NAME:orchestration}
+  propagators: tracecontext,baggage

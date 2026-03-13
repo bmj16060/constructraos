@@ -1,0 +1,11 @@
+.gradle/
+build/
+out/
+.idea/
+.DS_Store
+services/ui-service/frontend/node_modules/
+services/ui-service/frontend/dist/
+services/ui-service/frontend/coverage/
+services/ui-service/frontend/playwright-report/
+services/ui-service/frontend/test-results/
+.env

@@ -1,0 +1,6 @@
+micronaut:
+  server:
+    port: 8082
+
+policy:
+  opa-url: http://localhost:8181

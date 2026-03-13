@@ -1,0 +1,22 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id 'io.micronaut.application' version providers.gradleProperty('micronautGradlePluginVersion').get()
+        id 'io.micronaut.library' version providers.gradleProperty('micronautGradlePluginVersion').get()
+    }
+}
+
+rootProject.name = 'constructraos'
+
+include(
+    ':libraries:commons',
+    ':libraries:persistence',
+    ':libraries:orchestration-clients',
+    ':services:api-service',
+    ':services:orchestration',
+    ':services:policy-service',
+    ':services:ui-service'
+)
