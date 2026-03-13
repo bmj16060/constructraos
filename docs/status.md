@@ -4,23 +4,23 @@ Last updated: 2026-03-13
 
 ## Current Focus
 
-- Keep the renamed ConstructraOS repo aligned with the generic starter baseline rather than carrying forward domain-specific workflow code.
-- Keep the demo intentionally small: one LLM-backed `hello-world` workflow plus persisted history.
+- Keep ConstructraOS as a reusable, buildable baseline ready for the next real domain.
+- Keep the shipped demo intentionally small: one LLM-backed `hello-world` workflow plus persisted history.
 - Preserve the full core spine: API, orchestration, PostgreSQL, Valkey, tracing, policy/OPA, and UI shell.
 - Keep the no-login baseline, but route request identity through a real anonymous session boundary.
 - Keep the next architectural seam ready for a future graph database without forcing one into the first slice prematurely.
 
 ## In Progress
 
-- The repo has been reset to the generic baseline shape and renamed to ConstructraOS, but some baseline wording still needs cleanup where `StarterKit` or old reference text survives in docs or UI copy.
-- The codebase builds successfully with `./gradlew build`, but the compose-served stack should be re-verified in the renamed state before treating the local deployment path as settled.
-- Repo guidance now assumes domain discovery happens before new domain code is added, but the next real domain slice is intentionally undefined after the reset.
+- The baseline is ready for the next domain-discovery interview and first durable slice.
+- The compose-served local stack remains the primary deployment and verification path for baseline development.
+- The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 
 ## Next 3 Tasks
 
-1. Remove any remaining renamed-baseline drift, especially leftover `StarterKit` or stale reference text in docs, UI copy, and runtime-facing labels.
-2. Run and verify the full `docker compose up --build` path in the renamed ConstructraOS state, including UI, API, Temporal, policy, and history flow.
-3. Start the next real domain only after a fresh discovery interview, keeping the baseline generic until that first slice is deliberately chosen.
+1. Run a fresh discovery interview for the next real domain and define the first durable workflow and data slice.
+2. Verify the full `docker compose up --build` path end to end, including UI, API, Temporal, policy, and persisted history.
+3. Keep the baseline docs and patterns aligned as the first domain-specific implementation is introduced.
 
 ## Risks
 
