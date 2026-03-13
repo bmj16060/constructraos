@@ -12,7 +12,7 @@ Last updated: 2026-03-13
 
 ## In Progress
 
-- Simplified Gradle multi-project layout is replacing Aviation's included build-logic pattern.
+- Simplified Gradle multi-project layout is replacing the older included build-logic pattern with a smaller starter layout.
 - A compose-first deployment path is being wired for local deployment of the full platform baseline, including one durable Postgres instance split into separate app, Temporal, and Temporal visibility databases.
 - Compose image builds now run from the repo root through a shared multi-stage Dockerfile so `docker compose up --build` can compile the full Gradle project and package the resulting artifacts directly into each service image.
 - API requests now bootstrap through a signed anonymous session cookie and `/api/session`, and policy input uses session context instead of a fixed builder actor.
