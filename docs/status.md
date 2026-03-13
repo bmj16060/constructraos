@@ -33,16 +33,19 @@ Last updated: 2026-03-13
 - `api-service` now hosts an explicit Micronaut MCP surface at `/mcp`, `ui-service` proxies that path, and Codex-facing workflow tools now live there instead of on the bridge transport boundary.
 - Task workflow execution request IDs now advance from the repo-backed execution index instead of relying only on in-memory workflow counters, so retries create new durable execution records after worker restarts.
 - The local Codex runtime is now also being containerized inside the Compose stack with a dedicated `codex-runtime` service and an internal Docker daemon sidecar so the bridge, agent runtime, and execution workspaces can share one reproducible filesystem/network boundary instead of relying on host-local path translation.
+- GitHub App credentials are now available for `bmj16060/constructraos`, establishing the first real path toward GitHub-backed branch, push, and PR operations for isolated specialist executions.
+- The next environment-isolation direction is shifting away from branch-scoped Compose concurrency toward execution-scoped Kubernetes environments, with Compose retained as the local baseline stack.
 
 ## Next 3 Tasks
 
-1. Finish the containerized Codex runtime slice so specialist runs can progress from accepted execution into real branch-scoped Compose startup instead of stalling during environment bring-up.
-2. Move from the temporary shared branch worktree to per-execution workspaces so concurrent specialist runs do not collide on one checkout.
+1. Define the first GitHub-backed execution model so specialist runs can clone, branch, push, and open PRs without relying on host-local worktree reconciliation.
+2. Introduce an execution-scoped Kubernetes environment launcher instead of continuing to treat branch-scoped Compose startup as the main concurrency path.
 3. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 
 ## Risks
 
 - The first slice now spans orchestration, task management, git workflow, and test execution, so scope can expand too quickly unless the bootstrap contract stays narrow.
 - The bridge can now start or resume Codex threads against a containerized app-server/runtime path, submit turns, and signal accepted execution back into the workflow, but specialist runs are still not yet completing the full SRE environment path and the current branch workspace is still shared rather than isolated per execution request.
+- Moving execution into GitHub-backed Kubernetes environments will reduce local filesystem and host-port coupling, but it introduces new requirements around credentials, namespace lifecycle, and environment readiness contracts.
 - Workflow topology is still open: project workflows may own child task workflows or coordinate peer workflows, and the wrong early abstraction could create churn.
 - The graph database boundary is intentional but not implemented yet; early project memory should stay behind a dedicated seam even if v1 uses simpler filesystem-backed artifacts first.

@@ -1,6 +1,6 @@
 # ConstructraOS
 
-ConstructraOS is a reusable full-stack baseline for building domain-specific products on top of:
+ConstructraOS is an SDLC agent-orchestration platform built on a reusable full-stack baseline:
 
 - a Micronaut API boundary
 - Temporal-backed orchestration
@@ -10,26 +10,30 @@ ConstructraOS is a reusable full-stack baseline for building domain-specific pro
 - OPA-backed policy evaluation
 - a React/Vite UI shell served by `nginx`
 
-The shipped demo is intentionally small: a single `hello-world` workflow that renders a prompt, calls the same LLM activity path used by Aviation's WX agent, persists run history, and exposes that history in the UI.
+The repo is no longer just a generic starter kit. Its active domain is running software delivery work through durable project, task, specialist, branch, and validation workflows.
 
-The local deployment stack uses one durable PostgreSQL instance with separate logical databases for:
+## What It Does Today
 
-- the app (`constructraos`)
-- Temporal default persistence (`temporal`)
-- Temporal visibility (`temporal_visibility`)
+ConstructraOS currently ships the first execution slice for running ConstructraOS through its own platform:
 
-The baseline also includes a signed anonymous session cookie. There is still no real login flow, but the API now issues a stable per-browser session at `/api/session` so policy evaluation and future UI personalization can hang off a real session boundary instead of a hard-coded actor stub.
+- repo-backed markdown project records under [`projects/constructraos/`](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos)
+- a long-running task workflow that can accept QA requests and hand off to SRE
+- durable Codex execution requests with claim, acceptance, and SRE outcome callbacks
+- an MCP surface at `/mcp` for Codex-facing workflow tools
+- a containerized local Codex runtime path for bridge-driven execution
 
-## What This Repo Optimizes For
+The original `hello-world` workflow still exists as the smallest smokeable orchestration path, but it is no longer the main story of the repo.
 
-- Something you can clone, build, and deploy locally without aviation-specific baggage.
-- A codebase Codex can enter quickly.
-- Clear seams for adding a real domain, starting with discovery rather than premature implementation.
-- Documented patterns for workflows, policy, persistence, tracing, caching, and frontend data flow.
+## Current Direction
 
-## First Codex Prompt
+The platform baseline remains container-friendly, but the current product direction is:
 
-Point Codex at this repo and start with the business problem, not the implementation details. `AGENTS.md` instructs Codex to begin with a short interview when the domain is not yet clearly defined.
+- keep Docker Compose as the local baseline for building and single-stack validation
+- use GitHub as the source of truth for branch, push, PR, and merge workflows
+- move isolated specialist execution toward Kubernetes-backed environments instead of fighting branch-scoped host-port allocation in Compose
+- keep environment lifecycle, execution records, and workflow state inside ConstructraOS rather than scattering that logic across ad hoc scripts
+
+In short: Compose is still the developer bootstrap path; GitHub and Kubernetes are the likely execution backbone for real concurrent agent-team work.
 
 ## Repository Layout
 
@@ -43,8 +47,14 @@ ConstructraOS/
     commons/
     clients/
     persistence/
+    project-records/
+  projects/
+    constructraos/
+  runtime/
+    workspaces/
   services/
     api-service/
+    codex-bridge/
     orchestration/
     policy-service/
     ui-service/
@@ -52,18 +62,16 @@ ConstructraOS/
     policies/opa/
 ```
 
-## Quick Start
+## Local Baseline
 
 1. Copy `.env.example` to `.env` and set the LLM values that match your local setup.
-2. Start the local stack:
+2. Start the local baseline stack:
 
 ```bash
 docker compose up --build
 ```
 
-This path now uses a root multi-stage Docker build, so Compose compiles the full Gradle project and the UI assets before assembling the runtime images.
-
-The default local `ui-service` path also mounts `services/ui-service/build/frontend-static` as an overlay when that directory contains a host build, so frontend watch output can take over without replacing the clean-checkout fallback baked into the image.
+This path uses the repo-root multi-stage Docker build, so Compose compiles the Gradle project and frontend assets before assembling runtime images.
 
 3. Open:
 
@@ -72,7 +80,7 @@ The default local `ui-service` path also mounts `services/ui-service/build/front
 - Temporal UI: [http://localhost:18233](http://localhost:18233)
 - Jaeger: [http://localhost:18686](http://localhost:18686)
 
-The compose host ports are configurable through `.env` if those defaults still collide with other local services.
+The host ports are configurable through `.env`.
 
 ## Local Iteration
 
@@ -94,15 +102,13 @@ npm run dev
 
 The Vite dev server proxies `/api` to `http://localhost:8080`.
 
-- Frontend validation through the compose-managed `nginx` container:
+- Frontend validation through the compose-served `nginx` path:
 
 ```bash
 docker compose up --build ui-service api-service orchestration policy-service
 ```
 
-In this mode, `ui-service` serves baked image assets until a host frontend build is present, then automatically switches to the mounted overlay for fast browser refreshes.
-
-- Fast UI iteration with the default compose overlay:
+- Fast UI iteration with the overlay path:
 
 ```bash
 ./gradlew :services:ui-service:buildFrontendAssets
@@ -113,24 +119,42 @@ npm install
 npm run build:watch
 ```
 
-This keeps the containerized `nginx` path, but the mounted `services/ui-service/build/frontend-static` directory takes over as soon as it contains a frontend build so browser refreshes pick up rebuilds without rebuilding the image.
+## Execution Model
 
-## Deployment Model
+The current execution model is centered on durable workflow records rather than local shell sessions:
 
-The first deployable path is Docker Compose. The service boundaries stay container-friendly so you can later replace compose with Kubernetes, Nomad, ECS, or another deployment layer without rewriting the application seams.
+- project state lives in markdown-first records under [`projects/constructraos/`](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos)
+- workflows dispatch specialist execution requests
+- `codex-bridge` starts or resumes Codex threads and reports acceptance back into ConstructraOS
+- specialist tools report workflow outcomes through explicit MCP tools instead of relying on conversational summaries
 
-The Compose baseline intentionally keeps a single persistent Postgres server while splitting the application, Temporal, and Temporal visibility data into separate databases. The named Docker volume `postgres-data` keeps those databases across container restarts and recreations unless you explicitly remove the volume.
+The next major seam is isolated execution environments scoped to a concrete run, with GitHub-backed code movement and Kubernetes-backed environment scheduling.
 
-## Graph DB Follow-On
+## GitHub App Helper
 
-This baseline does not hard-wire a graph database yet, but it does reserve the seam:
+The repo includes a helper to mint and verify a GitHub App installation token:
 
-- `graph.*` config exists in API and orchestration
-- `docs/patterns.md` documents where a future `libraries/graph-store` boundary should sit
-- domain discovery should decide whether the graph belongs on the query path, orchestration side effects, or both before code is added
+- [scripts/github-app-installation-token.sh](/Users/brandonjohnson/SourceCode/ConstructraOS/scripts/github-app-installation-token.sh)
+
+Required environment variables:
+
+- `GITHUB_APP_ID`
+- `GITHUB_APP_INSTALLATION_ID`
+- `GITHUB_APP_PRIVATE_KEY_FILE`
+
+Example:
+
+```bash
+GITHUB_APP_ID=3083664 \
+GITHUB_APP_INSTALLATION_ID=116126747 \
+GITHUB_APP_PRIVATE_KEY_FILE=$HOME/.config/constructraos/github/constructraos-app.pem \
+./scripts/github-app-installation-token.sh
+```
 
 ## Docs
 
 - [status.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/status.md)
 - [patterns.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/patterns.md)
+- [tools.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tools.md)
 - [interviews/README.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/interviews/README.md)
+- [projects/constructraos/README.md](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos/README.md)
