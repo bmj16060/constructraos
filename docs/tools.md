@@ -29,6 +29,7 @@ Default to using it for non-trivial planning, debugging, or design decisions whe
 - extraction tradeoffs from Aviation into ConstructraOS
 - multi-service debugging across API, orchestration, policy, persistence, and UI
 - deciding the first implementation slice after a discovery interview
+- steering discovery interviews when follow-up question choice materially affects the resulting scope
 - refactoring plans where sequencing matters
 
 ### Do Not Use For
@@ -43,6 +44,8 @@ Default to using it for non-trivial planning, debugging, or design decisions whe
 - Make reasoning explicit before changing shared platform seams.
 - Use it to reduce design drift when adapting patterns from Aviation.
 - Use it when debugging or planning crosses service boundaries, even if the final implementation step is small.
+- During discovery interviews, use it in short bursts between question clusters to choose the next best follow-up, detect when the interview is drifting too deep, and decide when enough durable constraints have been captured.
+- Do not turn the live interview into a visibly over-structured planning exercise; use the tool to improve the next question, not to replace the interview.
 - Return the synthesized conclusion, not the intermediate reasoning, unless the user asks for it.
 
 ## Memory

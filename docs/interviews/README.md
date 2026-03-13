@@ -15,4 +15,6 @@ Keep notes focused on:
 - first durable data slice
 - important constraints and integrations
 
+During the interview itself, use short bursts of `sequential-thinking` when needed to choose the next highest-value follow-up question, separate durable constraints from implementation details, and recognize when the interview should stop.
+
 Use [`INTERVIEW-TEMPLATE.md`](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/interviews/INTERVIEW-TEMPLATE.md) when starting from scratch.
