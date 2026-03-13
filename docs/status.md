@@ -4,7 +4,7 @@ Last updated: 2026-03-13
 
 ## Current Focus
 
-- Keep ConstructraOS as a reusable, buildable baseline ready for the next real domain.
+- ConstructraOS is the reusable, buildable baseline for the next real domain.
 - Keep the shipped demo intentionally small: one LLM-backed `hello-world` workflow plus persisted history.
 - Preserve the full core spine: API, orchestration, PostgreSQL, Valkey, tracing, policy/OPA, and UI shell.
 - Keep the no-login baseline, but route request identity through a real anonymous session boundary.
