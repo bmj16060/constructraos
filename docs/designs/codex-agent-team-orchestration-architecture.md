@@ -14,6 +14,7 @@ The design emphasizes:
 - Minimal context passing
 - Interactive control from Codex via MCP
 - Human-in-the-loop consultation
+- Project-aware orchestration based on the user's working directory
 
 The system uses a **coordinator + sidecar pattern** where Codex agents run as isolated worker turns via:
 
@@ -23,7 +24,7 @@ and resume prior sessions using:
 
     codex exec resume <session_id>
 
-An MCP server exposes the orchestration system to an interactive Codex session so Codex can start tasks, run steps, inspect state, answer questions, and review transcripts without embedding orchestration logic directly in the interactive prompt.
+An MCP server exposes the orchestration system to an interactive Codex session so Codex can start tasks, run steps, inspect state, answer questions, and review transcripts.
 
 ---
 
@@ -48,11 +49,40 @@ Worker Agents
 
 ---
 
+# Core Concepts
+
+## Project
+
+The system treats the interactive user's **current working directory** as the active project.
+
+Each unique directory is registered with the coordinator and assigned a **project ID**.
+
+Example:
+
+    {
+      "project_id": "PROJ-12",
+      "name": "aviation",
+      "root_path": "/Users/brandonjohnson/SourceCode/Aviation"
+    }
+
+All orchestration state is scoped to a project.
+
+Project-scoped entities include:
+
+- tasks
+- consultations
+- human questions
+- transcripts
+- Codex session IDs
+- workflow policies
+
+---
+
 # Core Components
 
 ## 1. Interactive Codex Session
 
-The interactive Codex session is the human-facing control surface.
+The interactive Codex session is the human-facing interface.
 
 Responsibilities:
 
@@ -60,27 +90,29 @@ Responsibilities:
 - Call MCP tools
 - Display orchestration results
 - Surface pending human questions
-- Provide transcript inspection
-- Summarize task state
+- Inspect transcripts
+- Summarize project state
 
-The interactive session does **not** implement orchestration logic. It calls MCP tools exposed by the orchestration server.
+The interactive session does **not implement orchestration logic**.
+
+All orchestration is handled by the MCP server and coordinator.
 
 ---
 
 ## 2. MCP Server
 
-The MCP server provides a structured tool interface between the interactive Codex session and the orchestration runtime.
+The MCP server provides the structured tool interface between Codex and the orchestration runtime.
 
 Responsibilities:
 
-- Expose orchestration functions as MCP tools
-- Validate inputs
-- Route requests to the coordinator
-- Return structured orchestration responses
-- Provide access to transcripts and task state
-- Surface human consultation questions
+- Expose orchestration tools
+- Detect the caller's working directory
+- Resolve the current project
+- Validate tool inputs
+- Forward requests to the coordinator
+- Return structured responses
 
-The MCP surface should remain **coarse-grained**, leaving workflow logic inside the coordinator.
+The MCP surface should remain **coarse-grained**, allowing the coordinator to manage the workflow.
 
 ---
 
@@ -90,6 +122,7 @@ The coordinator is the orchestration control plane.
 
 Responsibilities:
 
+- Project registration
 - Task lifecycle management
 - Agent routing
 - Consultation management
@@ -97,22 +130,22 @@ Responsibilities:
 - Session tracking
 - Transcript storage
 - History summarization
-- Retry and escalation policy
-- Main agent loop execution
+- Retry and escalation policies
+- Main orchestration loop
 
-The coordinator **never runs Codex directly**. It calls the sidecar runner.
+The coordinator **never runs Codex directly**.
 
-The coordinator treats every agent invocation as a **single atomic turn**.
+It invokes the sidecar runner to execute Codex workers.
 
 ---
 
 ## 4. Codex Sidecar
 
-The sidecar is a thin wrapper around the Codex CLI.
+The sidecar wraps the Codex CLI.
 
 Responsibilities:
 
-- Execute Codex worker turns
+- Execute Codex workers
 - Resume prior Codex sessions
 - Enforce output schemas
 - Capture JSONL transcript streams
@@ -139,7 +172,7 @@ Resume prior session:
 
 Agents represent specialized roles.
 
-Typical roles:
+Example agents:
 
 - planner
 - implementer
@@ -153,15 +186,17 @@ Each agent:
 
 - performs a bounded task
 - runs in a single Codex execution turn
-- returns a structured result
+- returns structured output
 
-Agents do not directly invoke each other. All routing occurs through the coordinator.
+Agents **never invoke each other directly**.
+
+The coordinator handles all routing.
 
 ---
 
 # Structured Output Contract
 
-Each agent must return structured output conforming to a schema.
+Agents return structured results.
 
 Example schema:
 
@@ -177,7 +212,7 @@ Example schema:
       }
     }
 
-Example result:
+Example output:
 
     {
       "status": "completed",
@@ -190,17 +225,9 @@ Example result:
 
 # Transcript Handling
 
-Codex emits a JSONL event stream when invoked with:
+Codex can emit a JSONL event stream with:
 
     --json
-
-The stream includes:
-
-- assistant messages
-- tool calls
-- tool results
-- execution metadata
-- structured output events
 
 Example fragment:
 
@@ -209,28 +236,29 @@ Example fragment:
     {"type":"tool.result","tool":"repo_read"}
     {"type":"structured_output","value":{...}}
 
-Artifacts are stored separately:
+Artifacts are stored per project:
 
     runs/
-      TASK-184/
-        implementer/
-          turn-1.jsonl
-          result.json
-        reviewer/
-          turn-2.jsonl
-          result.json
+      PROJ-12/
+        TASK-184/
+          implementer/
+            turn-1.jsonl
+            result.json
+          reviewer/
+            turn-2.jsonl
+            result.json
 
-The coordinator consumes only the structured result for routing decisions.
+The coordinator uses only structured results for routing.
 
 ---
 
 # Session Continuity
 
-Codex sessions can be resumed using:
+Codex sessions can be resumed:
 
     codex exec resume <session_id>
 
-Example result payload:
+Example:
 
     {
       "session_id": "abc123",
@@ -239,27 +267,41 @@ Example result payload:
 
 Coordinator rules:
 
-Resume session when:
+Resume when:
 
-- same agent continues related work
+- same agent continues work
 - consultation continues
-- human answer unblocks a prior agent
+- human answer unblocks a task
 
-Start fresh run when:
+Start fresh when:
 
-- a different agent runs
+- switching agents
 - work is unrelated
-- context should be reset
+- context should reset
+
+Sessions are always scoped to the project.
+
+---
+
+# Task Model
+
+Example task:
+
+    {
+      "task_id": "TASK-184",
+      "project_id": "PROJ-12",
+      "type": "implementation",
+      "goal": "Implement tenant-scoped authz middleware",
+      "status": "active"
+    }
 
 ---
 
 # Agent Consultation Model
 
-Agents may ask questions of other agents.
+Agents may consult each other.
 
-Consultations are mediated by the coordinator.
-
-Example consultation:
+Example:
 
     CONS-42
       turn 1 implementer -> reviewer question
@@ -277,34 +319,32 @@ Consultations are bounded by:
 
 # Human Consultation Model
 
-Agents may require human input.
+Agents may require operator input.
 
-When an agent requires operator input, it returns a structured human question.
-
-Example result:
+Example structured result:
 
     {
       "status": "blocked",
       "summary": "Need operator decision on tenant bypass policy.",
       "human_question": {
         "question": "Should background jobs bypass tenant scoping?",
-        "reason": "Policy intent unclear from ADR-027.",
+        "reason": "Policy unclear from ADR-027.",
         "suggested_options": [
-          "Allow bypass for system maintenance jobs",
-          "Require strict tenant scoping everywhere"
+          "Allow bypass for system jobs",
+          "Require strict tenant scoping"
         ]
       }
     }
 
-The coordinator converts this into a **pending human question**.
+Coordinator converts this to a human question.
 
-Example stored question:
+Example record:
 
     {
       "question_id": "HQ-17",
+      "project_id": "PROJ-12",
       "task_id": "TASK-184",
       "from_agent": "reviewer",
-      "question": "Should background jobs bypass tenant scoping?",
       "status": "pending"
     }
 
@@ -312,39 +352,32 @@ Example stored question:
 
 # Human Question Queue
 
-The coordinator maintains a queue of unanswered human questions.
-
-State transitions:
+Questions move through states:
 
     pending -> answered -> task resumed
 
 When answered:
 
-- blocked task is requeued
-- coordinator resumes appropriate agent session
+- the blocked task is requeued
+- the coordinator resumes the agent session
 
 ---
 
 # Context Passing Strategy
 
-Each Codex turn receives a minimal context packet.
+Each worker receives a minimal context packet.
 
 Example:
 
     {
+      "project_id": "PROJ-12",
       "task_id": "TASK-184",
       "goal": "Review middleware change against ADR-027",
       "rolling_summary": [
         "Implementer updated authz middleware.",
         "Tenant bypass exists for system jobs."
       ],
-      "current_question": "Does this violate ADR-027?",
-      "artifacts": {
-        "files": [
-          "docs/decisions/ADR-027.md",
-          "server/src/main/java/.../AuthzFilter.java"
-        ]
-      }
+      "current_question": "Does this violate ADR-027?"
     }
 
 Full transcripts are rarely replayed.
@@ -353,20 +386,20 @@ Full transcripts are rarely replayed.
 
 # Main Agent Loop
 
-The coordinator runs a deterministic orchestration loop.
-
-## High-Level Loop
+Coordinator main loop:
 
     while system_active():
 
-        if pending_human_questions():
-            surface_questions_to_operator()
+        project = resolve_active_project()
 
-        if not has_runnable_work():
+        if pending_human_questions(project):
+            surface_questions_to_operator(project)
+
+        if not has_runnable_work(project):
             wait_for_input()
             continue
 
-        work_item = dequeue_next_work_item()
+        work_item = dequeue_next_work_item(project)
 
         agent = select_agent(work_item)
 
@@ -379,10 +412,9 @@ The coordinator runs a deterministic orchestration loop.
         response = invoke_sidecar(
             agent=agent,
             mode=mode,
-            session_id=work_item.session_id_for(agent),
+            session_id=work_item.session_id,
             prompt=prompt,
-            context=context_packet,
-            schema=schema_for(agent)
+            context=context_packet
         )
 
         persist_transcript(work_item, response.transcript)
@@ -397,7 +429,7 @@ The coordinator runs a deterministic orchestration loop.
 
 # Result Evaluation
 
-Coordinator decision rules:
+Rules:
 
 If:
 
@@ -431,7 +463,7 @@ If:
 
 Then:
 
-    open or continue consultation
+    open consultation
 
 ---
 
@@ -453,9 +485,12 @@ Escalation examples:
 
 # MCP Tool Surface
 
-Recommended MCP tools:
+Project tools:
 
-Task management:
+- get_current_project
+- list_projects
+
+Task tools:
 
 - start_task
 - run_next_step
@@ -484,8 +519,6 @@ Debugging:
 
 # Example MCP Tool: list_pending_questions
 
-Returns unanswered operator questions.
-
 Example result:
 
     {
@@ -493,7 +526,6 @@ Example result:
         {
           "question_id": "HQ-17",
           "task_id": "TASK-184",
-          "from_agent": "reviewer",
           "summary": "Need decision on tenant bypass policy"
         }
       ]
@@ -507,10 +539,10 @@ Example input:
 
     {
       "question_id": "HQ-17",
-      "answer": "Allow bypass for system maintenance jobs but enforce tenant scope everywhere else."
+      "answer": "Allow bypass for system maintenance jobs but enforce tenant scoping elsewhere."
     }
 
-Example response:
+Example output:
 
     {
       "question_id": "HQ-17",
@@ -522,24 +554,24 @@ Example response:
 
 # Interactive Codex Usage Model
 
-Operator workflow inside Codex:
+Operator workflow:
 
-    "Start a new task"
-    -> start_task
+    "Start task"
+      -> start_task
 
-    "Run the next step"
-    -> run_next_step
+    "Run next step"
+      -> run_next_step
 
-    "Do I have any questions to answer?"
-    -> list_pending_questions
+    "Do I have any questions?"
+      -> list_pending_questions
 
     "Answer HQ-17"
-    -> answer_question
+      -> answer_question
 
-    "Show transcript of last reviewer step"
-    -> open_transcript
+    "Show transcript"
+      -> open_transcript
 
-This allows Codex to act as the operator interface while orchestration logic lives entirely in the MCP server.
+Codex acts as the operator interface while orchestration runs inside the MCP server.
 
 ---
 
@@ -555,32 +587,32 @@ This allows Codex to act as the operator interface while orchestration logic liv
        ↓
     docs
 
-Each step runs as a single Codex execution turn.
+Each step runs as a single Codex worker turn.
 
 ---
 
 # Design Principles
 
 Atomic worker turns  
-Each Codex invocation is a bounded reasoning unit.
+Each Codex invocation is a bounded reasoning task.
 
 Coordinator-owned state  
-All workflow state lives in the coordinator.
+All orchestration state lives in the coordinator.
 
 Schema-first communication  
-Agents communicate via structured JSON outputs.
+Agents return structured JSON results.
 
 Transcript separation  
-Transcripts are persisted but not required for routing.
+Transcripts are stored separately from routing decisions.
 
-Minimal context passing  
-Agents receive only relevant history.
+Project isolation  
+All state is scoped by project.
 
 Human-in-the-loop control  
-Operator questions are first-class workflow events.
+Operator decisions are first-class workflow events.
 
 Interactive orchestration  
-Codex interacts with the system via MCP tools.
+Codex interacts through MCP tools.
 
 ---
 
