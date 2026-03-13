@@ -9,6 +9,7 @@ public record TaskWorkflowState(
     String activeBranch,
     String environmentStatus,
     String environmentName,
+    String environmentNamespace,
     String activeExecutionRequestId,
     String codexThreadId,
     String latestEvidenceId,

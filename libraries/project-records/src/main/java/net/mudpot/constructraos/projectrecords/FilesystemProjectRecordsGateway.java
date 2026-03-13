@@ -5,6 +5,8 @@ import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
@@ -72,6 +74,12 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
     }
 
     @Override
+    public ProjectEnvironmentRecord loadEnvironment(final String projectId, final String environmentId) {
+        final Path environmentPath = resolveEnvironmentPath(projectId, environmentId);
+        return loadEnvironment(projectId, environmentId, environmentPath);
+    }
+
+    @Override
     public synchronized ProjectEvidenceRecord writeEvidence(final ProjectEvidenceWriteRequest request) {
         final String projectId = normalizeRequired(request.projectId(), "projectId");
         final String taskId = normalizeRequired(request.taskId(), "taskId");
@@ -104,6 +112,84 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
     }
 
     @Override
+    public synchronized ProjectEnvironmentRecord writeEnvironment(final ProjectEnvironmentWriteRequest request) {
+        final String projectId = normalizeRequired(request.projectId(), "projectId");
+        final String taskId = normalizeRequired(request.taskId(), "taskId");
+        final String branchName = normalizeRequired(request.branchName(), "branchName");
+        final String environmentName = normalizeRequired(request.environmentName(), "environmentName");
+        final String namespace = normalizeRequired(request.namespace(), "namespace");
+        final Path projectDirectory = projectDirectory(projectId);
+        final Path environmentDirectory = projectDirectory.resolve("environments");
+        createDirectories(environmentDirectory);
+
+        final String environmentId = normalized(request.environmentId()).isBlank()
+            ? nextEnvironmentId(environmentDirectory)
+            : normalized(request.environmentId());
+        final Path environmentPath = environmentDirectory.resolve(
+            environmentId + "-" + slugify(environmentName) + ".md"
+        );
+        final Instant writtenAt = Instant.now();
+        final String lastActiveAt = normalized(request.lastActiveAt()).isBlank()
+            ? writtenAt.toString()
+            : normalized(request.lastActiveAt());
+
+        writeString(environmentPath, renderEnvironmentMarkdown(
+            environmentId,
+            new ProjectEnvironmentWriteRequest(
+                projectId,
+                environmentId,
+                taskId,
+                branchName,
+                environmentName,
+                namespace,
+                nullToBlank(request.ownershipScope()),
+                nullToBlank(request.status()),
+                request.protectedEnvironment(),
+                lastActiveAt,
+                nullToBlank(request.retireAfter()),
+                nullToBlank(request.note())
+            ),
+            writtenAt,
+            environmentPath
+        ));
+        updateEnvironmentIndex(
+            projectDirectory.resolve("environments").resolve("index.md"),
+            new ProjectEnvironmentWriteRequest(
+                projectId,
+                environmentId,
+                taskId,
+                branchName,
+                environmentName,
+                namespace,
+                nullToBlank(request.ownershipScope()),
+                nullToBlank(request.status()),
+                request.protectedEnvironment(),
+                lastActiveAt,
+                nullToBlank(request.retireAfter()),
+                nullToBlank(request.note())
+            ),
+            writtenAt,
+            environmentPath
+        );
+
+        return new ProjectEnvironmentRecord(
+            environmentId,
+            environmentPath.toString(),
+            projectId,
+            taskId,
+            branchName,
+            environmentName,
+            namespace,
+            nullToBlank(request.ownershipScope()),
+            nullToBlank(request.status()),
+            request.protectedEnvironment(),
+            lastActiveAt,
+            nullToBlank(request.retireAfter()),
+            nullToBlank(request.note())
+        );
+    }
+
+    @Override
     public synchronized ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
         final String projectId = normalizeRequired(request.projectId(), "projectId");
         final String taskId = normalizeRequired(request.taskId(), "taskId");
@@ -131,6 +217,34 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             request.callbackFailureSignal(),
             request.note()
         );
+    }
+
+    @Override
+    public List<ProjectEnvironmentRecord> listEnvironments(final String projectId, final String status) {
+        final Path environmentIndexPath = projectDirectory(projectId).resolve("environments").resolve("index.md");
+        final List<String> lines = readLines(environmentIndexPath);
+        final List<ProjectEnvironmentRecord> records = new ArrayList<>();
+        for (String line : lines) {
+            final String trimmed = line.trim();
+            if (!trimmed.startsWith("|")) {
+                continue;
+            }
+            final List<String> cells = parseTableRow(trimmed);
+            if (cells.size() < 10 || "ID".equalsIgnoreCase(cells.get(0))) {
+                continue;
+            }
+            final String environmentId = normalized(cells.get(0));
+            final String environmentPathTarget = normalized(extractMarkdownLinkTarget(cells.get(9)));
+            if (environmentId.isBlank() || environmentId.startsWith("---") || environmentPathTarget.isBlank() || environmentPathTarget.startsWith("---")) {
+                continue;
+            }
+            final Path environmentPath = Path.of(environmentPathTarget);
+            final ProjectEnvironmentRecord record = loadEnvironment(projectId, environmentId, environmentPath);
+            if (normalized(status).isBlank() || normalized(status).equalsIgnoreCase(record.status())) {
+                records.add(record);
+            }
+        }
+        return List.copyOf(records);
     }
 
     @Override
@@ -212,6 +326,18 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
         }
     }
 
+    private Path resolveEnvironmentPath(final String projectId, final String environmentId) {
+        final Path environmentDirectory = projectDirectory(projectId).resolve("environments");
+        try (var stream = Files.list(environmentDirectory)) {
+            return stream
+                .filter(path -> path.getFileName().toString().startsWith(environmentId + "-"))
+                .findFirst()
+                .orElseThrow(() -> new ProjectRecordNotFoundException("Environment not found: " + environmentId));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to resolve environment record for " + environmentId, exception);
+        }
+    }
+
     private Path projectDirectory(final String projectId) {
         final String normalizedProjectId = normalizeRequired(projectId, "projectId");
         final Path directory = rootDirectory.resolve(normalizedProjectId);
@@ -246,6 +372,31 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             builder.append("- ").append(check).append("\n");
         }
         builder.append("\n## Notes\n\n");
+        builder.append(nullToBlank(request.note()).isBlank() ? "No additional notes." : request.note()).append("\n");
+        return builder.toString();
+    }
+
+    private static String renderEnvironmentMarkdown(
+        final String environmentId,
+        final ProjectEnvironmentWriteRequest request,
+        final Instant writtenAt,
+        final Path environmentPath
+    ) {
+        final StringBuilder builder = new StringBuilder();
+        builder.append("# ").append(environmentId).append(": ").append(nullToBlank(request.environmentName())).append("\n\n");
+        builder.append("- Status: ").append(nullToBlank(request.status())).append("\n");
+        builder.append("- Project: ").append(nullToBlank(request.projectId())).append("\n");
+        builder.append("- Task: ").append(nullToBlank(request.taskId())).append("\n");
+        builder.append("- Branch: `").append(nullToBlank(request.branchName())).append("`\n");
+        builder.append("- Environment name: ").append(nullToBlank(request.environmentName())).append("\n");
+        builder.append("- Namespace: ").append(nullToBlank(request.namespace())).append("\n");
+        builder.append("- Ownership scope: ").append(nullToBlank(request.ownershipScope())).append("\n");
+        builder.append("- Protected: ").append(request.protectedEnvironment()).append("\n");
+        builder.append("- Last active at: ").append(nullToBlank(request.lastActiveAt())).append("\n");
+        builder.append("- Retire after: ").append(nullToBlank(request.retireAfter())).append("\n");
+        builder.append("- Updated at: ").append(writtenAt).append("\n");
+        builder.append("- Record: ").append(environmentPath.toAbsolutePath()).append("\n\n");
+        builder.append("## Notes\n\n");
         builder.append(nullToBlank(request.note()).isBlank() ? "No additional notes." : request.note()).append("\n");
         return builder.toString();
     }
@@ -293,6 +444,87 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             extractValue(lines, "- Callback failure signal:"),
             extractSection(lines, "## Notes")
         );
+    }
+
+    private static ProjectEnvironmentRecord loadEnvironment(
+        final String projectId,
+        final String environmentId,
+        final Path environmentPath
+    ) {
+        final List<String> lines = readLines(environmentPath);
+        return new ProjectEnvironmentRecord(
+            environmentId,
+            environmentPath.toString(),
+            projectId,
+            extractValue(lines, "- Task:"),
+            stripTicks(extractValue(lines, "- Branch:")),
+            extractValue(lines, "- Environment name:"),
+            extractValue(lines, "- Namespace:"),
+            extractValue(lines, "- Ownership scope:"),
+            extractValue(lines, "- Status:"),
+            Boolean.parseBoolean(extractValue(lines, "- Protected:")),
+            extractValue(lines, "- Last active at:"),
+            extractValue(lines, "- Retire after:"),
+            extractSection(lines, "## Notes")
+        );
+    }
+
+    private static void updateEnvironmentIndex(
+        final Path indexPath,
+        final ProjectEnvironmentWriteRequest request,
+        final Instant writtenAt,
+        final Path environmentPath
+    ) {
+        final String row = "| " + nullToBlank(request.environmentId())
+            + " | " + request.taskId()
+            + " | `" + request.branchName() + "`"
+            + " | " + request.environmentName()
+            + " | `" + request.namespace() + "`"
+            + " | " + nullToBlank(request.ownershipScope())
+            + " | " + nullToBlank(request.status())
+            + " | " + nullToBlank(request.lastActiveAt())
+            + " | " + nullToBlank(request.retireAfter())
+            + " | [" + nullToBlank(request.environmentId()) + "](" + environmentPath.toAbsolutePath() + ") |";
+        final List<String> lines = Files.exists(indexPath) ? readLines(indexPath) : List.of("# Environment Index");
+        final List<String> updated = new ArrayList<>();
+        boolean replacedEmpty = false;
+        for (String line : lines) {
+            if (line.contains("No environments have been recorded yet.")) {
+                if (!replacedEmpty) {
+                    updated.clear();
+                    updated.add("# Environment Index");
+                    updated.add("");
+                    updated.add("| ID | Task | Branch | Environment | Namespace | Scope | Status | Last Active At | Retire After | Link |");
+                    updated.add("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+                    updated.add(row);
+                    replacedEmpty = true;
+                }
+                continue;
+            }
+            updated.add(line);
+        }
+        if (!replacedEmpty) {
+            if (updated.stream().noneMatch(line -> line.startsWith("| ID | Task | Branch | Environment | Namespace | Scope | Status | Last Active At | Retire After | Link |"))) {
+                if (!updated.isEmpty() && !updated.get(updated.size() - 1).isBlank()) {
+                    updated.add("");
+                }
+                updated.add("| ID | Task | Branch | Environment | Namespace | Scope | Status | Last Active At | Retire After | Link |");
+                updated.add("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+            }
+            boolean replacedExisting = false;
+            for (int i = 0; i < updated.size(); i++) {
+                final String line = updated.get(i);
+                if (line.startsWith("| " + request.environmentId() + " |")) {
+                    updated.set(i, row);
+                    replacedExisting = true;
+                    break;
+                }
+            }
+            if (!replacedExisting) {
+                updated.add(row);
+            }
+        }
+        writeString(indexPath, String.join("\n", updated) + "\n");
     }
 
     private static void updateEvidenceIndex(
@@ -490,6 +722,31 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             return "E-" + String.format(Locale.ROOT, "%04d", nextNumber);
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to generate next evidence ID.", exception);
+        }
+    }
+
+    private static String nextEnvironmentId(final Path environmentDirectory) {
+        try (var stream = Files.list(environmentDirectory)) {
+            final int nextNumber = stream
+                .map(path -> path.getFileName().toString())
+                .filter(name -> name.startsWith("ENV-"))
+                .map(FilesystemProjectRecordsGateway::extractEnvironmentNumber)
+                .filter(number -> number > 0)
+                .max(Comparator.naturalOrder())
+                .orElse(0) + 1;
+            return "ENV-" + String.format(Locale.ROOT, "%04d", nextNumber);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to generate next environment ID.", exception);
+        }
+    }
+
+    private static int extractEnvironmentNumber(final String filename) {
+        final int dashIndex = filename.indexOf('-', 4);
+        final String number = dashIndex > 0 ? filename.substring(4, dashIndex) : "";
+        try {
+            return Integer.parseInt(number);
+        } catch (NumberFormatException ignored) {
+            return 0;
         }
     }
 

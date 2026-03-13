@@ -146,7 +146,7 @@ class ConstructraTaskWorkflowToolsTest implements TestPropertyProvider {
 
         @Override
         public TaskWorkflowState currentState(final String projectId, final String taskId) {
-            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "SRE", "project/constructraos/integration", "requested", "planned integration environment", "T-0001-exec-1", "codex-thread-123", "E-0001", "qa_requested", 1);
+            return new TaskWorkflowState(projectId, taskId, "OPEN", "in_progress", "SRE", "project/constructraos/integration", "requested", "planned integration environment", "team-t-0001", "T-0001-exec-1", "codex-thread-123", "E-0001", "qa_requested", 1);
         }
 
         @Override

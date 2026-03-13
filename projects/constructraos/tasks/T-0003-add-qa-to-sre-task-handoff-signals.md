@@ -7,7 +7,7 @@
 - Linked ADRs:
   - [ADR-0001](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/adrs/0001-repo-backed-bootstrap-work-tracking.md)
 - Linked bugs: none
-- Latest evidence: none
+- Latest evidence: [E-0024](/var/lib/constructraos/projects/constructraos/evidence/E-0024-t-0003-qa-request.md)
 
 ## Summary
 

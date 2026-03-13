@@ -95,13 +95,28 @@ class ExecutionRequestControllerTest {
         }
 
         @Override
+        public net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord loadEnvironment(final String projectId, final String environmentId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord writeEvidence(final net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest request) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord writeEnvironment(final net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentWriteRequest request) {
             throw new UnsupportedOperationException();
         }
 
         @Override
         public ProjectExecutionRequestRecord writeExecutionRequest(final net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest request) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord> listEnvironments(final String projectId, final String status) {
+            return List.of();
         }
 
         @Override

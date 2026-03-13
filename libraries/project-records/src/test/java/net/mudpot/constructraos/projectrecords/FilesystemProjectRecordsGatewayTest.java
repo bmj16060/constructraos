@@ -2,6 +2,8 @@ package net.mudpot.constructraos.projectrecords;
 
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
@@ -88,6 +90,37 @@ class FilesystemProjectRecordsGatewayTest {
     }
 
     @Test
+    void writeEnvironmentCreatesRecordAndIndex() throws IOException {
+        final Path projectRoot = seedProjectTree();
+        final FilesystemProjectRecordsGateway gateway = new FilesystemProjectRecordsGateway(projectRoot.getParent());
+
+        final ProjectEnvironmentRecord record = gateway.writeEnvironment(
+            new ProjectEnvironmentWriteRequest(
+                "constructraos",
+                "",
+                "T-0001",
+                "project/constructraos/integration",
+                "planned integration environment",
+                "team-t-0001",
+                "task-team",
+                "requested",
+                false,
+                "2026-03-13T00:00:00Z",
+                "",
+                "Environment requested."
+            )
+        );
+
+        assertEquals("ENV-0001", record.id());
+        assertTrue(Files.exists(Path.of(record.path())));
+        final String environmentIndex = Files.readString(projectRoot.resolve("environments").resolve("index.md"));
+        assertTrue(environmentIndex.contains("ENV-0001"));
+        assertEquals(1, environmentIndex.split("# Environment Index", -1).length - 1);
+        assertEquals(1, gateway.listEnvironments("constructraos", "").size());
+        assertEquals("team-t-0001", gateway.loadEnvironment("constructraos", "ENV-0001").namespace());
+    }
+
+    @Test
     void listExecutionRequestsSkipsMarkdownSeparatorRows() throws IOException {
         final Path projectRoot = seedProjectTree();
         final FilesystemProjectRecordsGateway gateway = new FilesystemProjectRecordsGateway(projectRoot.getParent());
@@ -120,6 +153,7 @@ class FilesystemProjectRecordsGatewayTest {
         Files.createDirectories(projectRoot.resolve("tasks"));
         Files.createDirectories(projectRoot.resolve("branches"));
         Files.createDirectories(projectRoot.resolve("evidence"));
+        Files.createDirectories(projectRoot.resolve("environments"));
         Files.createDirectories(projectRoot.resolve("executions"));
         Files.writeString(
             projectRoot.resolve("tasks").resolve("T-0001-bootstrap-project-contract.md"),
@@ -147,6 +181,7 @@ class FilesystemProjectRecordsGatewayTest {
             """
         );
         Files.writeString(projectRoot.resolve("evidence").resolve("index.md"), "# Evidence Index\n\nNo QA or test evidence has been recorded yet.\n");
+        Files.writeString(projectRoot.resolve("environments").resolve("index.md"), "# Environment Index\n\nNo environments have been recorded yet.\n");
         Files.writeString(projectRoot.resolve("executions").resolve("index.md"), "# Execution Request Index\n\nNo specialist execution requests have been recorded yet.\n");
         return projectRoot;
     }

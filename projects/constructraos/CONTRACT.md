@@ -12,6 +12,7 @@ The bootstrap contract covers:
 - bug records
 - branch state
 - test and QA evidence
+- environment lifecycle records
 - specialist execution requests
 
 ## Design Rules
@@ -40,6 +41,8 @@ projects/constructraos/
   bugs/
     index.md
   branches/
+    index.md
+  environments/
     index.md
   evidence/
     index.md
@@ -91,6 +94,20 @@ The file name should start with the same ID.
 - result
 - executed checks
 - relevant logs, screenshots, or notes
+
+## Minimum Environment Record Fields
+
+- environment ID
+- linked task
+- branch
+- environment name
+- kubernetes namespace or equivalent runtime scope
+- ownership scope such as `task-team` or `execution`
+- lifecycle status
+- protected flag
+- last active timestamp
+- retirement basis such as `retire_after`
+- operator or workflow notes
 
 ## Minimum Branch Index Fields
 

@@ -24,3 +24,7 @@
 | E-0018 | T-0001 | `project/constructraos/integration` | requested | 2026-03-13T07:15:08.364289709Z | [E-0018](/var/lib/constructraos/projects/constructraos/evidence/E-0018-t-0001-qa-request.md) |
 | E-0019 | T-0001 | `project/constructraos/integration` | requested | 2026-03-13T07:17:08.605955308Z | [E-0019](/var/lib/constructraos/projects/constructraos/evidence/E-0019-t-0001-qa-request.md) |
 | E-0020 | T-0001 | `project/constructraos/integration` | ready | 2026-03-13T07:23:06.061007103Z | [E-0020](/var/lib/constructraos/projects/constructraos/evidence/E-0020-t-0001-sre-environment-outcome.md) |
+| E-0021 | T-0001 | `project/constructraos/integration` | requested | 2026-03-13T15:22:27.777448401Z | [E-0021](/var/lib/constructraos/projects/constructraos/evidence/E-0021-t-0001-qa-request.md) |
+| E-0022 | T-0001 | `project/constructraos/integration` | ready | 2026-03-13T15:28:30.436156824Z | [E-0022](/var/lib/constructraos/projects/constructraos/evidence/E-0022-t-0001-sre-environment-outcome.md) |
+| E-0023 | T-0001 | `project/constructraos/integration` | requested | 2026-03-13T15:39:53.483937275Z | [E-0023](/var/lib/constructraos/projects/constructraos/evidence/E-0023-t-0001-qa-request.md) |
+| E-0024 | T-0003 | `project/constructraos/integration` | requested | 2026-03-13T15:40:38.847621422Z | [E-0024](/var/lib/constructraos/projects/constructraos/evidence/E-0024-t-0003-qa-request.md) |

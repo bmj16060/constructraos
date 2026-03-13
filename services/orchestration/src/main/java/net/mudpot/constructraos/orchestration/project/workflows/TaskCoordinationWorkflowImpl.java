@@ -17,17 +17,23 @@ import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEv
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import net.mudpot.constructraos.orchestration.core.policy.WorkflowPolicyEnforcer;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.time.Instant;
 
 @Prototype
 public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
+    private static final String ENVIRONMENT_RECORDS_CHANGE_ID = "task-environment-records-v1";
+    private static final int ENVIRONMENT_RECORDS_VERSION = 1;
     private final PolicyEvaluationActivities policyEvaluationActivities;
     private final CodexActivities codexActivities;
     private final ProjectRecordsActivities projectRecordsActivities;
@@ -42,6 +48,8 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     private String activeBranch = "";
     private String environmentStatus = "unknown";
     private String environmentName = "";
+    private String environmentNamespace = "";
+    private String activeEnvironmentId = "";
     private String activeExecutionRequestId = "";
     private String codexThreadId = "";
     private String latestEvidenceId = "";
@@ -114,6 +122,7 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
             activeBranch,
             environmentStatus,
             environmentName,
+            environmentNamespace,
             activeExecutionRequestId,
             codexThreadId,
             latestEvidenceId,
@@ -142,6 +151,10 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         final ProjectTaskRecord taskRecord = projectRecordsActivities.loadTask(projectId, taskId);
         final String branchName = resolveBranchName(taskRecord, request.branchName());
         final ProjectBranchRecord branchRecord = resolveBranchRecord(branchName);
+        final boolean environmentRecordsEnabled = environmentRecordsEnabled();
+        final ProjectEnvironmentRecord environmentRecord = environmentRecordsEnabled
+            ? ensureRequestedEnvironment(branchName, branchRecord)
+            : null;
         final String executionRequestId = nextExecutionRequestId();
         final CodexExecutionDispatchResult dispatchResult = codexActivities.dispatchExecution(
             new CodexExecutionDispatchRequest(
@@ -183,16 +196,21 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
                 taskId,
                 "qa-request",
                 branchName,
-                branchRecord.environment(),
+                environmentRecordsEnabled ? environmentRecord.environmentName() : branchRecord.environment(),
                 "QA",
                 "requested",
                 List.of(
                     "QA request accepted by the long-running task workflow.",
                     "Branch and task records were loaded from the repo-backed project contract.",
+                    environmentRecordsEnabled
+                        ? "Environment lifecycle was recorded through the repo-backed environment boundary."
+                        : "Environment lifecycle still follows the pre-environment-record workflow path for this history.",
                     "Codex SRE execution request dispatched for branch environment preparation.",
                     "Awaiting SRE environment preparation and smoke validation."
                 ),
-                joinNotes(dispatchResult.note(), request.note()),
+                environmentRecordsEnabled
+                    ? joinNotes(joinNotes(dispatchResult.note(), request.note()), "Environment namespace: " + environmentRecord.namespace())
+                    : joinNotes(dispatchResult.note(), request.note()),
                 normalize(request.requestedByKind()),
                 normalize(request.sessionId()),
                 Workflow.getInfo().getWorkflowId()
@@ -201,8 +219,10 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         this.taskStatus = taskRecord.status();
         this.activeBranch = branchName;
         this.waitingOn = "SRE";
-        this.environmentStatus = "requested";
-        this.environmentName = branchRecord.environment();
+        this.environmentStatus = environmentRecordsEnabled ? environmentRecord.status() : "requested";
+        this.environmentName = environmentRecordsEnabled ? environmentRecord.environmentName() : branchRecord.environment();
+        this.environmentNamespace = environmentRecordsEnabled ? environmentRecord.namespace() : "";
+        this.activeEnvironmentId = environmentRecordsEnabled ? environmentRecord.id() : "";
         this.activeExecutionRequestId = executionRequestId;
         this.latestEvidenceId = evidenceRecord.id();
         this.qaRequestCount += 1;
@@ -256,6 +276,9 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         final String effectiveEnvironmentName = normalize(outcome.environmentName()).isBlank()
             ? environmentName
             : normalize(outcome.environmentName());
+        final String effectiveNamespace = normalize(environmentNamespace).isBlank()
+            ? namespaceForTask(taskId)
+            : normalize(environmentNamespace);
         final ProjectEvidenceRecord evidenceRecord = projectRecordsActivities.writeEvidence(
             new ProjectEvidenceWriteRequest(
                 projectId,
@@ -275,10 +298,30 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
                 Workflow.getInfo().getWorkflowId()
             )
         );
+        if (environmentRecordsEnabled() && !normalize(activeEnvironmentId).isBlank()) {
+            final ProjectEnvironmentRecord existingEnvironment = safeLoadEnvironment(activeEnvironmentId);
+            projectRecordsActivities.writeEnvironment(
+                new ProjectEnvironmentWriteRequest(
+                    projectId,
+                    activeEnvironmentId,
+                    taskId,
+                    branchName,
+                    effectiveEnvironmentName,
+                    effectiveNamespace,
+                    existingEnvironment == null ? "task-team" : normalize(existingEnvironment.ownershipScope()),
+                    normalize(outcome.status()),
+                    existingEnvironment != null && existingEnvironment.protectedEnvironment(),
+                    nowIso(),
+                    existingEnvironment == null ? "" : normalize(existingEnvironment.retireAfter()),
+                    normalize(outcome.note())
+                )
+            );
+        }
         this.taskStatus = taskRecord.status();
         this.activeBranch = branchName;
         this.environmentStatus = normalize(outcome.status());
         this.environmentName = effectiveEnvironmentName;
+        this.environmentNamespace = effectiveNamespace;
         this.waitingOn = "ready".equalsIgnoreCase(environmentStatus) ? "QA" : "SRE";
         projectRecordsActivities.writeExecutionRequest(
             new ProjectExecutionRequestWriteRequest(
@@ -297,6 +340,101 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
         );
         this.latestEvidenceId = evidenceRecord.id();
         this.lastEvent = "sre_environment_reported";
+    }
+
+    private boolean environmentRecordsEnabled() {
+        return Workflow.getVersion(
+            ENVIRONMENT_RECORDS_CHANGE_ID,
+            Workflow.DEFAULT_VERSION,
+            ENVIRONMENT_RECORDS_VERSION
+        ) >= ENVIRONMENT_RECORDS_VERSION;
+    }
+
+    private ProjectEnvironmentRecord ensureRequestedEnvironment(final String branchName, final ProjectBranchRecord branchRecord) {
+        final String namespace = namespaceForTask(taskId);
+        final List<ProjectEnvironmentRecord> environments = projectRecordsActivities.listEnvironments(projectId, "");
+        final ProjectEnvironmentRecord existing = environments.stream()
+            .filter(environment -> normalize(environment.taskId()).equals(taskId))
+            .filter(environment -> normalize(environment.namespace()).equals(namespace))
+            .filter(environment -> !isRetiredEnvironment(environment.status()))
+            .max(Comparator.comparing(environment -> normalize(environment.lastActiveAt())))
+            .orElse(null);
+
+        if (existing != null) {
+            WorkflowPolicyEnforcer.enforce(
+                policyEvaluationActivities,
+                "workflow.environment.reuse",
+                Map.of(
+                    "resource_name", "environment",
+                    "request", Map.of(
+                        "project_id", projectId,
+                        "task_id", taskId,
+                        "branch_name", branchName,
+                        "environment_id", normalize(existing.id()),
+                        "namespace", namespace,
+                        "environment_status", normalize(existing.status()),
+                        "protected_environment", existing.protectedEnvironment(),
+                        "active_execution_count", activeExecutionCount()
+                    )
+                )
+            );
+            return projectRecordsActivities.writeEnvironment(
+                new ProjectEnvironmentWriteRequest(
+                    projectId,
+                    existing.id(),
+                    taskId,
+                    branchName,
+                    branchRecord.environment(),
+                    namespace,
+                    normalize(existing.ownershipScope()).isBlank() ? "task-team" : normalize(existing.ownershipScope()),
+                    "requested",
+                    existing.protectedEnvironment(),
+                    nowIso(),
+                    normalize(existing.retireAfter()),
+                    joinNotes(existing.note(), "Environment requested for a new QA pass.")
+                )
+            );
+        }
+
+        WorkflowPolicyEnforcer.enforce(
+            policyEvaluationActivities,
+            "workflow.environment.launch",
+            Map.of(
+                "resource_name", "environment",
+                "request", Map.of(
+                    "project_id", projectId,
+                    "task_id", taskId,
+                    "branch_name", branchName,
+                    "namespace", namespace,
+                    "protected_environment", false,
+                    "active_execution_count", activeExecutionCount()
+                )
+            )
+        );
+        return projectRecordsActivities.writeEnvironment(
+            new ProjectEnvironmentWriteRequest(
+                projectId,
+                "",
+                taskId,
+                branchName,
+                branchRecord.environment(),
+                namespace,
+                "task-team",
+                "requested",
+                false,
+                nowIso(),
+                "",
+                "Environment record created for task-team namespace lifecycle."
+            )
+        );
+    }
+
+    private ProjectEnvironmentRecord safeLoadEnvironment(final String environmentId) {
+        try {
+            return projectRecordsActivities.loadEnvironment(projectId, environmentId);
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private ProjectBranchRecord resolveBranchRecord(final String branchName) {
@@ -372,6 +510,35 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
             }
         }
         return prefix + nextSuffix;
+    }
+
+    private long activeExecutionCount() {
+        return projectRecordsActivities.listExecutionRequests(projectId, "").stream()
+            .filter(record -> normalize(record.taskId()).equals(taskId))
+            .filter(record -> {
+                final String status = normalize(record.status());
+                return !status.equalsIgnoreCase("completed")
+                    && !status.equalsIgnoreCase("failed")
+                    && !status.equalsIgnoreCase("retired")
+                    && !status.equalsIgnoreCase("deleted");
+            })
+            .count();
+    }
+
+    private static boolean isRetiredEnvironment(final String status) {
+        final String normalizedStatus = normalize(status);
+        return normalizedStatus.equalsIgnoreCase("retired")
+            || normalizedStatus.equalsIgnoreCase("deleting")
+            || normalizedStatus.equalsIgnoreCase("deleted");
+    }
+
+    private static String namespaceForTask(final String taskId) {
+        final String normalizedTaskId = normalize(taskId).toLowerCase().replaceAll("[^a-z0-9-]+", "-");
+        return normalizedTaskId.isBlank() ? "team-unknown" : "team-" + normalizedTaskId;
+    }
+
+    private static String nowIso() {
+        return Instant.ofEpochMilli(Workflow.currentTimeMillis()).toString();
     }
 
     private static String joinNotes(final String first, final String second) {

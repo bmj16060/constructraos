@@ -87,3 +87,78 @@ test_workflow_task_report_sre_environment_denied_without_branch if {
     },
   }
 }
+
+test_workflow_environment_launch_allowed_with_required_fields if {
+  allow with input as {
+    "action": "workflow.environment.launch",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+      "branch_name": "project/constructraos/integration",
+      "namespace": "team-t-0001",
+    },
+  }
+}
+
+test_workflow_environment_reuse_allowed_for_active_environment if {
+  allow with input as {
+    "action": "workflow.environment.reuse",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+      "branch_name": "project/constructraos/integration",
+      "environment_id": "ENV-0001",
+      "namespace": "team-t-0001",
+      "environment_status": "ready",
+    },
+  }
+}
+
+test_workflow_environment_reuse_denied_for_deleted_environment if {
+  not allow with input as {
+    "action": "workflow.environment.reuse",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+      "branch_name": "project/constructraos/integration",
+      "environment_id": "ENV-0001",
+      "namespace": "team-t-0001",
+      "environment_status": "deleted",
+    },
+  }
+}
+
+test_workflow_environment_retire_denied_for_protected_environment if {
+  not allow with input as {
+    "action": "workflow.environment.retire",
+    "request": {
+      "environment_id": "ENV-0001",
+      "namespace": "team-t-0001",
+      "protected_environment": true,
+    },
+  }
+}
+
+test_workflow_environment_delete_denied_when_execution_active if {
+  not allow with input as {
+    "action": "workflow.environment.delete",
+    "request": {
+      "environment_id": "ENV-0001",
+      "namespace": "team-t-0001",
+      "protected_environment": false,
+      "active_execution_count": 1,
+    },
+  }
+}
+
+test_workflow_environment_delete_allowed_when_not_protected_and_idle if {
+  allow with input as {
+    "action": "workflow.environment.delete",
+    "request": {
+      "environment_id": "ENV-0001",
+      "namespace": "team-t-0001",
+      "protected_environment": false,
+      "active_execution_count": 0,
+    },
+  }
+}

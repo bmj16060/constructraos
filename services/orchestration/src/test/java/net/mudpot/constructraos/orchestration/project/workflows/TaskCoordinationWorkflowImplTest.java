@@ -19,6 +19,8 @@ import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectEnvironmentWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
@@ -88,11 +90,13 @@ class TaskCoordinationWorkflowImplTest {
             assertEquals("QA", state.waitingOn());
             assertEquals("ready", state.environmentStatus());
             assertEquals("branch-env-01", state.environmentName());
+            assertEquals("team-t-0001", state.environmentNamespace());
             assertEquals("T-0001-exec-1", state.activeExecutionRequestId());
             assertEquals("codex-thread-123", state.codexThreadId());
             assertEquals(1, state.qaRequestCount());
             assertEquals("project/constructraos/integration", projectRecordsActivities.latestRequest.branchName());
             assertEquals("sre-environment-outcome", projectRecordsActivities.latestRequest.evidenceType());
+            assertEquals("ENV-0001", projectRecordsActivities.latestEnvironment.id());
             assertEquals("T-0001-exec-1", projectRecordsActivities.latestExecutionRequest.executionRequestId());
             workflow.close("test-complete");
         }
@@ -254,9 +258,12 @@ class TaskCoordinationWorkflowImplTest {
 
     private static final class CapturingProjectRecordsActivities implements ProjectRecordsActivities {
         private ProjectEvidenceWriteRequest latestRequest;
+        private ProjectEnvironmentRecord latestEnvironment;
         private ProjectExecutionRequestWriteRequest latestExecutionRequest;
         private int evidenceCount;
+        private int environmentCount;
         private final List<ProjectExecutionRequestRecord> executionRequests = new ArrayList<>();
+        private final List<ProjectEnvironmentRecord> environments = new ArrayList<>();
 
         @Override
         public ProjectTaskRecord loadTask(final String projectId, final String taskId) {
@@ -297,6 +304,41 @@ class TaskCoordinationWorkflowImplTest {
         }
 
         @Override
+        public ProjectEnvironmentRecord loadEnvironment(final String projectId, final String environmentId) {
+            return environments.stream()
+                .filter(environment -> environment.projectId().equals(projectId))
+                .filter(environment -> environment.id().equals(environmentId))
+                .findFirst()
+                .orElseThrow();
+        }
+
+        @Override
+        public ProjectEnvironmentRecord writeEnvironment(final ProjectEnvironmentWriteRequest request) {
+            final String environmentId = request.environmentId() == null || request.environmentId().isBlank()
+                ? "ENV-000" + (++environmentCount)
+                : request.environmentId();
+            final ProjectEnvironmentRecord record = new ProjectEnvironmentRecord(
+                environmentId,
+                "/tmp/" + environmentId + ".md",
+                request.projectId(),
+                request.taskId(),
+                request.branchName(),
+                request.environmentName(),
+                request.namespace(),
+                request.ownershipScope(),
+                request.status(),
+                request.protectedEnvironment(),
+                request.lastActiveAt(),
+                request.retireAfter(),
+                request.note()
+            );
+            environments.removeIf(existing -> existing.id().equals(environmentId));
+            environments.add(record);
+            latestEnvironment = record;
+            return record;
+        }
+
+        @Override
         public ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
             this.latestExecutionRequest = request;
             final ProjectExecutionRequestRecord record = new ProjectExecutionRequestRecord(
@@ -316,6 +358,14 @@ class TaskCoordinationWorkflowImplTest {
             executionRequests.removeIf(existing -> existing.id().equals(record.id()));
             executionRequests.add(record);
             return record;
+        }
+
+        @Override
+        public List<ProjectEnvironmentRecord> listEnvironments(final String projectId, final String status) {
+            return environments.stream()
+                .filter(record -> record.projectId().equals(projectId))
+                .filter(record -> status == null || status.isBlank() || record.status().equalsIgnoreCase(status))
+                .toList();
         }
 
         @Override
@@ -351,6 +401,7 @@ class TaskCoordinationWorkflowImplTest {
         final Path projectRoot = projectsRoot.resolve("constructraos");
         Files.createDirectories(projectRoot.resolve("tasks"));
         Files.createDirectories(projectRoot.resolve("branches"));
+        Files.createDirectories(projectRoot.resolve("environments"));
         Files.createDirectories(projectRoot.resolve("evidence"));
         Files.createDirectories(projectRoot.resolve("executions"));
         Files.writeString(
@@ -378,6 +429,7 @@ class TaskCoordinationWorkflowImplTest {
             | `project/constructraos/integration` | project control branch | ConstructraOS project roll-up branch | planned integration environment | planned |
             """
         );
+        Files.writeString(projectRoot.resolve("environments").resolve("index.md"), "# Environment Index\n\nNo environments have been recorded yet.\n");
         Files.writeString(projectRoot.resolve("evidence").resolve("index.md"), "# Evidence Index\n\nNo QA or test evidence has been recorded yet.\n");
         Files.writeString(projectRoot.resolve("executions").resolve("index.md"), "# Execution Request Index\n\nNo specialist execution requests have been recorded yet.\n");
         return projectRoot;
