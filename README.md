@@ -1,6 +1,8 @@
 # ConstructraOS
 
-ConstructraOS is a reusable full-stack baseline for building domain-specific products on top of:
+ConstructraOS is based on the reusable [starterkit](https://github.com/bmj16060/starterkit) baseline and is ready to begin building out the real ConstructraOS domain.
+
+It provides a reusable full-stack starting point built on:
 
 - a Micronaut API boundary
 - Temporal-backed orchestration
@@ -10,7 +12,7 @@ ConstructraOS is a reusable full-stack baseline for building domain-specific pro
 - OPA-backed policy evaluation
 - a React/Vite UI shell served by `nginx`
 
-The shipped demo is intentionally small: a single `hello-world` workflow that renders a prompt, calls the same LLM activity path used by Aviation's WX agent, persists run history, and exposes that history in the UI.
+The shipped demo is intentionally small: a single `hello-world` workflow that renders a prompt, calls the shared LLM activity path, persists run history, and exposes that history in the UI.
 
 The local deployment stack uses one durable PostgreSQL instance with separate logical databases for:
 
@@ -22,7 +24,7 @@ The baseline also includes a signed anonymous session cookie. There is still no 
 
 ## What This Repo Optimizes For
 
-- Something you can clone, build, and deploy locally without aviation-specific baggage.
+- Something you can clone, build, and deploy locally without domain-specific baggage.
 - A codebase Codex can enter quickly.
 - Clear seams for adding a real domain, starting with discovery rather than premature implementation.
 - Documented patterns for workflows, policy, persistence, tracing, caching, and frontend data flow.
