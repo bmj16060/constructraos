@@ -11,7 +11,7 @@ import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflow
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.projectrecords.ProjectRecordsGateway;
-import net.mudpot.constructraos.orchestrationclients.project.TaskCoordinationWorkflowClient;
+import net.mudpot.constructraos.clients.project.TaskCoordinationWorkflowClient;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

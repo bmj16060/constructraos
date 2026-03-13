@@ -1,4 +1,4 @@
-package net.mudpot.constructraos.orchestrationclients.config;
+package net.mudpot.constructraos.clients.config;
 
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Value;
@@ -9,8 +9,8 @@ import io.temporal.opentracing.OpenTracingOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import jakarta.inject.Singleton;
-import net.mudpot.constructraos.orchestrationclients.system.HelloWorldWorkflowClient;
-import net.mudpot.constructraos.orchestrationclients.project.TaskCoordinationWorkflowClient;
+import net.mudpot.constructraos.clients.system.HelloWorldWorkflowClient;
+import net.mudpot.constructraos.clients.project.TaskCoordinationWorkflowClient;
 
 @Factory
 public class OrchestrationClientsFactory {

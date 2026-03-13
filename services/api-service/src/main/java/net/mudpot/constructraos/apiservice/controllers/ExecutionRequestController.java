@@ -19,7 +19,7 @@ import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.projectrecords.ProjectRecordsGateway;
-import net.mudpot.constructraos.orchestrationclients.project.TaskCoordinationWorkflowClient;
+import net.mudpot.constructraos.clients.project.TaskCoordinationWorkflowClient;
 
 import java.util.List;
 import java.util.Map;

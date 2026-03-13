@@ -1,4 +1,4 @@
-package net.mudpot.constructraos.orchestrationclients.project;
+package net.mudpot.constructraos.clients.project;
 
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.client.WorkflowClient;

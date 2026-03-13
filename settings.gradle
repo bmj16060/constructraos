@@ -15,7 +15,7 @@ include(
     ':libraries:commons',
     ':libraries:project-records',
     ':libraries:persistence',
-    ':libraries:orchestration-clients',
+    ':libraries:clients',
     ':services:api-service',
     ':services:codex-bridge',
     ':services:orchestration',

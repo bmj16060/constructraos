@@ -1,4 +1,4 @@
-package net.mudpot.constructraos.orchestrationclients.system;
+package net.mudpot.constructraos.clients.system;
 
 import io.temporal.api.common.v1.WorkflowExecution;
 import io.temporal.client.WorkflowClient;
@@ -8,7 +8,7 @@ import net.mudpot.constructraos.commons.orchestration.WorkflowNames;
 import net.mudpot.constructraos.commons.orchestration.system.model.HelloWorldResult;
 import net.mudpot.constructraos.commons.orchestration.system.model.HelloWorldWorkflowInput;
 import net.mudpot.constructraos.commons.orchestration.system.workflows.HelloWorldWorkflow;
-import net.mudpot.constructraos.orchestrationclients.model.WorkflowStartResponse;
+import net.mudpot.constructraos.clients.model.WorkflowStartResponse;
 
 import java.util.UUID;
 

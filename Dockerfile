@@ -11,7 +11,7 @@ COPY gradle ./gradle
 
 COPY libraries/commons/build.gradle ./libraries/commons/build.gradle
 COPY libraries/project-records/build.gradle ./libraries/project-records/build.gradle
-COPY libraries/orchestration-clients/build.gradle ./libraries/orchestration-clients/build.gradle
+COPY libraries/clients/build.gradle ./libraries/clients/build.gradle
 COPY libraries/persistence/build.gradle ./libraries/persistence/build.gradle
 COPY services/api-service/build.gradle ./services/api-service/build.gradle
 COPY services/codex-bridge/build.gradle ./services/codex-bridge/build.gradle
