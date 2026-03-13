@@ -6,3 +6,4 @@
 | T-0002 | Implement signal-driven task workflow slice | completed | backend | `project/constructraos/integration` | [T-0002](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos/tasks/T-0002-implement-signal-driven-task-workflow.md) |
 | T-0003 | Add QA to SRE task handoff signals | completed | backend | `project/constructraos/integration` | [T-0003](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos/tasks/T-0003-add-qa-to-sre-task-handoff-signals.md) |
 | T-0004 | Add Codex execution request seam | completed | backend | `project/constructraos/integration` | [T-0004](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos/tasks/T-0004-add-codex-execution-request-seam.md) |
+| T-0005 | Add codex bridge service boundary | completed | backend | `project/constructraos/integration` | [T-0005](/Users/brandonjohnson/SourceCode/ConstructraOS/projects/constructraos/tasks/T-0005-add-codex-bridge-service-boundary.md) |

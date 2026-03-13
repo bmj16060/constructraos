@@ -1,0 +1,22 @@
+micronaut:
+  application:
+    name: codex-bridge
+  server:
+    port: 8083
+
+codex:
+  app-server:
+    enabled: ${CODEX_APP_SERVER_ENABLED:false}
+    url: ${CODEX_APP_SERVER_URL:}
+    timeout-seconds: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:10}
+
+otel:
+  traces:
+    exporter: ${OTEL_TRACES_EXPORTER:none}
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:`http://localhost:4318`}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+  service:
+    name: ${OTEL_SERVICE_NAME:codex-bridge}
+  propagators: tracecontext,baggage

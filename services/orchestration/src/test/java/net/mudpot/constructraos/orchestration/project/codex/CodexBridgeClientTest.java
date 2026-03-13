@@ -3,17 +3,17 @@ package net.mudpot.constructraos.orchestration.project.codex;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchResult;
-import net.mudpot.constructraos.orchestration.config.CodexAdapterConfig;
+import net.mudpot.constructraos.orchestration.config.CodexBridgeConfig;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class HttpCodexDispatchClientTest {
+class CodexBridgeClientTest {
     @Test
-    void dispatchReturnsPlaceholderWhenAdapterDisabled() throws Exception {
-        final HttpCodexDispatchClient client = new HttpCodexDispatchClient(disabledConfig(), new ObjectMapper());
+    void dispatchReturnsPlaceholderWhenBridgeDisabled() throws Exception {
+        final CodexBridgeClient client = new CodexBridgeClient(disabledConfig(), new ObjectMapper());
 
         final CodexExecutionDispatchResult result = client.dispatch(
             new CodexExecutionDispatchRequest(
@@ -36,8 +36,8 @@ class HttpCodexDispatchClientTest {
         assertEquals("dispatched", result.status());
     }
 
-    private static CodexAdapterConfig disabledConfig() throws Exception {
-        final CodexAdapterConfig config = new CodexAdapterConfig();
+    private static CodexBridgeConfig disabledConfig() throws Exception {
+        final CodexBridgeConfig config = new CodexBridgeConfig();
         set(config, "enabled", false);
         set(config, "url", "");
         set(config, "timeoutSeconds", 10);

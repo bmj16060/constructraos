@@ -4,18 +4,18 @@ import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.orchestration.project.activities.CodexActivities;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchResult;
-import net.mudpot.constructraos.orchestration.project.codex.CodexDispatchClient;
+import net.mudpot.constructraos.orchestration.project.codex.CodexBridgeClient;
 
 @Singleton
 public class CodexActivitiesImpl implements CodexActivities {
-    private final CodexDispatchClient codexDispatchClient;
+    private final CodexBridgeClient codexBridgeClient;
 
-    public CodexActivitiesImpl(final CodexDispatchClient codexDispatchClient) {
-        this.codexDispatchClient = codexDispatchClient;
+    public CodexActivitiesImpl(final CodexBridgeClient codexBridgeClient) {
+        this.codexBridgeClient = codexBridgeClient;
     }
 
     @Override
     public CodexExecutionDispatchResult dispatchExecution(final CodexExecutionDispatchRequest request) {
-        return codexDispatchClient.dispatch(request);
+        return codexBridgeClient.dispatch(request);
     }
 }

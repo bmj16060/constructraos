@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchRequest;
 import net.mudpot.constructraos.commons.orchestration.project.model.CodexExecutionDispatchResult;
-import net.mudpot.constructraos.orchestration.config.CodexAdapterConfig;
+import net.mudpot.constructraos.orchestration.config.CodexBridgeConfig;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,12 +13,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 @Singleton
-public class HttpCodexDispatchClient implements CodexDispatchClient {
-    private final CodexAdapterConfig config;
+public class CodexBridgeClient {
+    private final CodexBridgeConfig config;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
-    public HttpCodexDispatchClient(final CodexAdapterConfig config, final ObjectMapper objectMapper) {
+    public CodexBridgeClient(final CodexBridgeConfig config, final ObjectMapper objectMapper) {
         this.config = config;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
@@ -26,14 +26,13 @@ public class HttpCodexDispatchClient implements CodexDispatchClient {
             .build();
     }
 
-    @Override
     public CodexExecutionDispatchResult dispatch(final CodexExecutionDispatchRequest request) {
         if (!config.enabled() || config.url().isBlank()) {
             return new CodexExecutionDispatchResult(
                 request.executionRequestId(),
                 "",
                 "dispatched",
-                "Codex adapter is not configured yet. Request persisted for external consumption."
+                "Codex bridge is not configured yet. Request persisted for external consumption."
             );
         }
 
@@ -45,14 +44,14 @@ public class HttpCodexDispatchClient implements CodexDispatchClient {
                 .build();
             final HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("Codex adapter returned status " + response.statusCode() + ": " + response.body());
+                throw new IllegalStateException("Codex bridge returned status " + response.statusCode() + ": " + response.body());
             }
             return objectMapper.readValue(response.body(), CodexExecutionDispatchResult.class);
         } catch (IOException | InterruptedException exception) {
             if (exception instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
-            throw new IllegalStateException("Failed dispatching Codex execution request.", exception);
+            throw new IllegalStateException("Failed dispatching Codex execution request to codex-bridge.", exception);
         }
     }
 }

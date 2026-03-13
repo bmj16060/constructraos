@@ -55,10 +55,10 @@ execution:
     root-dir: ${EXECUTION_WORKSPACES_ROOT_DIR:runtime/workspaces}
 
 codex:
-  adapter:
-    enabled: ${CODEX_ADAPTER_ENABLED:false}
-    url: ${CODEX_ADAPTER_URL:}
-    timeout-seconds: ${CODEX_ADAPTER_TIMEOUT_SECONDS:10}
+  bridge:
+    enabled: ${CODEX_BRIDGE_ENABLED:true}
+    url: ${CODEX_BRIDGE_URL:`http://codex-bridge:8083/internal/codex`}
+    timeout-seconds: ${CODEX_BRIDGE_TIMEOUT_SECONDS:10}
 
 policy:
   service-url: ${POLICY_SERVICE_URL:`http://127.0.0.1:8082`}

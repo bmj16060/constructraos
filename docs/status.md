@@ -26,10 +26,11 @@ Last updated: 2026-03-13
 - The SRE execution path is now pivoting to a Codex-mediated model: workflows dispatch durable execution requests and track Codex thread identity instead of assuming the orchestration container directly runs Compose.
 - The first durable Codex execution-request path now exists end to end: workflows write execution requests, API can list them for consumption, and Codex can callback with acceptance and SRE outcomes.
 - The API now also supports atomic claim of pending execution requests so a Codex thread can stamp its thread ID onto the durable request and acknowledge the workflow in one step.
+- A dedicated `codex-bridge` service boundary now exists in Compose, so orchestration targets the bridge while the bridge owns the future host-local `codex app-server` conversation protocol.
 
 ## Next 3 Tasks
 
-1. Add the first true Codex adapter process using the supported Codex SDK or App Server so the atomic claim path is exercised by a real Codex integration rather than tests and stubs.
+1. Replace the placeholder bridge conversation client with a real `codex app-server` protocol client using `thread/start`, `thread/resume`, and turn submission.
 2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 

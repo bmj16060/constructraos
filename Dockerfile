@@ -14,6 +14,7 @@ COPY libraries/project-records/build.gradle ./libraries/project-records/build.gr
 COPY libraries/orchestration-clients/build.gradle ./libraries/orchestration-clients/build.gradle
 COPY libraries/persistence/build.gradle ./libraries/persistence/build.gradle
 COPY services/api-service/build.gradle ./services/api-service/build.gradle
+COPY services/codex-bridge/build.gradle ./services/codex-bridge/build.gradle
 COPY services/orchestration/build.gradle ./services/orchestration/build.gradle
 COPY services/policy-service/build.gradle ./services/policy-service/build.gradle
 COPY services/ui-service/build.gradle ./services/ui-service/build.gradle
@@ -34,6 +35,7 @@ RUN --mount=type=cache,target=/root/.gradle \
     --mount=type=cache,target=/root/.npm \
     ./gradlew --no-daemon build \
     :services:api-service:installDist \
+    :services:codex-bridge:installDist \
     :services:orchestration:installDist \
     :services:policy-service:installDist
 
@@ -46,6 +48,16 @@ COPY --from=repo-build /workspace/services/api-service/build/install/api-service
 EXPOSE 8080
 
 CMD ["/app/bin/api-service"]
+
+FROM eclipse-temurin:21-jre-alpine AS codex-bridge
+
+WORKDIR /app
+
+COPY --from=repo-build /workspace/services/codex-bridge/build/install/codex-bridge/ /app/
+
+EXPOSE 8083
+
+CMD ["/app/bin/codex-bridge"]
 
 FROM eclipse-temurin:21-jre-alpine AS orchestration
 

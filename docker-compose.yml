@@ -82,6 +82,23 @@ services:
     ports:
       - "${POLICY_SERVICE_HOST_PORT:-18082}:8082"
 
+  codex-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: codex-bridge
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      CODEX_APP_SERVER_ENABLED: ${CODEX_APP_SERVER_ENABLED:-false}
+      CODEX_APP_SERVER_URL: ${CODEX_APP_SERVER_URL:-ws://host.docker.internal:18444}
+      CODEX_APP_SERVER_TIMEOUT_SECONDS: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:-10}
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+      OTEL_TRACES_SAMPLER: always_on
+    ports:
+      - "${CODEX_BRIDGE_HOST_PORT:-18083}:8083"
+
   api-service:
     build:
       context: .
@@ -127,6 +144,8 @@ services:
         condition: service_started
       valkey:
         condition: service_started
+      codex-bridge:
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -139,6 +158,8 @@ services:
       VALKEY_ENABLED: "true"
       VALKEY_HOST: valkey
       VALKEY_PORT: 6379
+      CODEX_BRIDGE_ENABLED: "true"
+      CODEX_BRIDGE_URL: http://codex-bridge:8083/internal/codex
       PROJECT_RECORDS_ROOT_DIR: ${PROJECT_RECORDS_ROOT_DIR:-/var/lib/constructraos/projects}
       EXECUTION_WORKSPACES_ROOT_DIR: ${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
       AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-openai-compatible}

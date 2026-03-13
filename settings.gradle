@@ -17,6 +17,7 @@ include(
     ':libraries:persistence',
     ':libraries:orchestration-clients',
     ':services:api-service',
+    ':services:codex-bridge',
     ':services:orchestration',
     ':services:policy-service',
     ':services:ui-service'
