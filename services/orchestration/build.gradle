@@ -77,6 +77,7 @@ dependencies {
     implementation 'io.micronaut.data:micronaut-data-jdbc'
     implementation 'io.micronaut.sql:micronaut-jdbc-hikari'
     implementation project(':libraries:commons')
+    implementation project(':libraries:project-records')
     implementation project(':libraries:persistence')
     implementation "io.temporal:temporal-sdk:${project.findProperty('temporalSdkVersion')}"
     implementation "io.temporal:temporal-opentracing:${project.findProperty('temporalSdkVersion')}"

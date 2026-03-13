@@ -1,0 +1,30 @@
+plugins {
+    id 'io.micronaut.library'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+micronaut {
+    version(micronautVersion)
+    testRuntime('junit5')
+    processing {
+        incremental(true)
+        annotations('net.mudpot.constructraos.*')
+    }
+}
+
+dependencies {
+    implementation platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
+    annotationProcessor 'io.micronaut:micronaut-inject-java'
+    implementation 'io.micronaut:micronaut-runtime'
+    implementation project(':libraries:commons')
+
+    testImplementation platform("org.junit:junit-bom:${project.findProperty('junitBomVersion')}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

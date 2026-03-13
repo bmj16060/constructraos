@@ -10,6 +10,7 @@ import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import jakarta.inject.Singleton;
 import net.mudpot.constructraos.orchestrationclients.system.HelloWorldWorkflowClient;
+import net.mudpot.constructraos.orchestrationclients.project.TaskCoordinationWorkflowClient;
 
 @Factory
 public class OrchestrationClientsFactory {
@@ -35,5 +36,10 @@ public class OrchestrationClientsFactory {
     @Singleton
     public HelloWorldWorkflowClient helloWorldWorkflowClient(final WorkflowClient workflowClient) {
         return new HelloWorldWorkflowClient(workflowClient);
+    }
+
+    @Singleton
+    public TaskCoordinationWorkflowClient taskCoordinationWorkflowClient(final WorkflowClient workflowClient) {
+        return new TaskCoordinationWorkflowClient(workflowClient);
     }
 }

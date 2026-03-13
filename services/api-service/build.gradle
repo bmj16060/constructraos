@@ -59,6 +59,7 @@ dependencies {
     implementation 'io.micronaut.tracing:micronaut-tracing-opentelemetry-http'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation project(':libraries:commons')
+    implementation project(':libraries:project-records')
     implementation project(':libraries:persistence')
     implementation project(':libraries:orchestration-clients')
     runtimeOnly 'org.postgresql:postgresql'

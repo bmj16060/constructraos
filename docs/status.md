@@ -20,11 +20,12 @@ Last updated: 2026-03-13
 - Discovery has now defined the first real domain: project workflows that manage task and bug execution through specialist agents, with ADRs, git branching, and testing as first-class delivery artifacts.
 - The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` for ADRs, project plans, task state, branch state, and execution evidence.
 - v1 is expected to spawn specialist agents, including an SRE specialist, and provide specialist-specific prompts/guidance instead of stopping at planning-only workflow records.
+- The first long-running task workflow slice now exists as a signal-driven Temporal path that can `signalWithStart` a task workflow, query its state, and write QA evidence through the repo-backed project-records boundary.
 
 ## Next 3 Tasks
 
-1. Design and implement the first project-to-task orchestration slice against the repo-backed project contract, including one Codex-backed specialist execution path.
-2. Add the first QA -> SRE execution flow that can request a branch-scoped Compose environment, capture evidence, and route failures back into project records.
+1. Extend the task workflow from QA-request evidence capture into a real QA -> SRE flow that can request a branch-scoped Compose environment and record the SRE outcome via signals.
+2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 
 ## Risks

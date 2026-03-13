@@ -27,3 +27,27 @@ test_execute_denied_for_short_use_case if {
 test_unknown_action_denied if {
   not allow with input as {"action": "workflow.unknown"}
 }
+
+test_project_task_qa_request_allowed if {
+  allow with input as {"action": "project.task.qa_request"}
+}
+
+test_workflow_task_request_qa_allowed_for_project_and_task if {
+  allow with input as {
+    "action": "workflow.task.request_qa",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "T-0001",
+    },
+  }
+}
+
+test_workflow_task_request_qa_denied_without_task if {
+  not allow with input as {
+    "action": "workflow.task.request_qa",
+    "request": {
+      "project_id": "constructraos",
+      "task_id": "",
+    },
+  }
+}
