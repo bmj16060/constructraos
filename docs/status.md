@@ -18,8 +18,7 @@ Last updated: 2026-03-13
 - API requests now bootstrap through a signed anonymous session cookie and `/api/session`, and policy input uses session context instead of a fixed builder actor.
 - The default local UI path now combines baked frontend assets with a host-mounted overlay fallback so clean checkouts still boot while `build:watch` can take over immediately once frontend assets exist on disk.
 - Discovery has now defined the first real domain: project workflows that manage task and bug execution through specialist agents, with ADRs, git branching, and testing as first-class delivery artifacts.
-- Basecamp is now the chosen long-term project-management system for project planning and coordination.
-- The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` as the active bootstrap boundary for ADRs, project plans, task state, branch state, and execution evidence until the Basecamp-facing operating model is implemented.
+- The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` for ADRs, project plans, task state, branch state, and execution evidence.
 - v1 is expected to spawn specialist agents, including an SRE specialist, and provide specialist-specific prompts/guidance instead of stopping at planning-only workflow records.
 - The first long-running task workflow slice now exists as a signal-driven Temporal path that can `signalWithStart` a task workflow, query its state, and write QA evidence through the repo-backed project-records boundary.
 - The task workflow now models the first QA -> SRE handoff state, including SRE environment outcome signals and evidence capture for branch-scoped environment readiness.

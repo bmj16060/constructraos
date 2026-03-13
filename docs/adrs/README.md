@@ -12,5 +12,3 @@ Conventions:
 Current ADRs:
 
 - [0001-repo-backed-bootstrap-work-tracking.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/adrs/0001-repo-backed-bootstrap-work-tracking.md)
-- [0002-kubernetes-execution-storage.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/adrs/0002-kubernetes-execution-storage.md)
-- [0003-basecamp-project-management-system.md](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/adrs/0003-basecamp-project-management-system.md)
