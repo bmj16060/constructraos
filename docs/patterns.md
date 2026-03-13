@@ -41,6 +41,14 @@
 - Schema changes land as Flyway migrations in that same library so both API and worker see the same migration set.
 - The first demo persists workflow history, not domain complexity.
 
+## Execution Storage Pattern
+
+- GitHub is the source of truth for repo content, branches, and PR-facing code movement.
+- Kubernetes execution environments should use pod-local ephemeral workspace storage for checked-out code and scratch files.
+- Durable execution artifacts should live in S3-compatible object storage behind a dedicated ConstructraOS boundary rather than through raw bucket SDK calls spread across services.
+- Workflow and API state should store artifact metadata and references, not shared filesystem paths or large blobs.
+- Shared RWX persistent volumes are an explicit optimization for caches, not the default collaboration model.
+
 ## Policy Pattern
 
 - Services do not embed authorization logic directly in controllers when a reusable decision can live in OPA.
