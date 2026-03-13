@@ -21,11 +21,13 @@ Last updated: 2026-03-13
 - The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` for ADRs, project plans, task state, branch state, and execution evidence.
 - v1 is expected to spawn specialist agents, including an SRE specialist, and provide specialist-specific prompts/guidance instead of stopping at planning-only workflow records.
 - The first long-running task workflow slice now exists as a signal-driven Temporal path that can `signalWithStart` a task workflow, query its state, and write QA evidence through the repo-backed project-records boundary.
+- The task workflow now models the first QA -> SRE handoff state, including SRE environment outcome signals and evidence capture for branch-scoped environment readiness.
+- Compose/runtime roots are now explicitly separated between repo-backed project records and mutable execution workspaces so worker filesystem access is deliberate rather than implicit.
 
 ## Next 3 Tasks
 
-1. Extend the task workflow from QA-request evidence capture into a real QA -> SRE flow that can request a branch-scoped Compose environment and record the SRE outcome via signals.
-2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
+1. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
+2. Add the first actual SRE execution path so the SRE outcome signal can be produced by branch-scoped Compose bring-up and smoke validation rather than only by an external caller.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 
 ## Risks

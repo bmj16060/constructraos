@@ -102,11 +102,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-constructraos}
       TEMPORAL_ADDRESS: temporal:7233
       POLICY_SERVICE_URL: http://policy-service:8082
+      PROJECT_RECORDS_ROOT_DIR: ${PROJECT_RECORDS_ROOT_DIR:-/var/lib/constructraos/projects}
+      EXECUTION_WORKSPACES_ROOT_DIR: ${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
       OTEL_TRACES_EXPORTER: otlp
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_TRACES_SAMPLER: always_on
       GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
       GRAPH_URI: ${GRAPH_URI:-}
+    volumes:
+      - ./projects:${PROJECT_RECORDS_ROOT_DIR:-/var/lib/constructraos/projects}
+      - ./runtime/workspaces:${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
     ports:
       - "${API_SERVICE_HOST_PORT:-18080}:8080"
 
@@ -134,6 +139,8 @@ services:
       VALKEY_ENABLED: "true"
       VALKEY_HOST: valkey
       VALKEY_PORT: 6379
+      PROJECT_RECORDS_ROOT_DIR: ${PROJECT_RECORDS_ROOT_DIR:-/var/lib/constructraos/projects}
+      EXECUTION_WORKSPACES_ROOT_DIR: ${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
       AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-openai-compatible}
       AI_OPENAI_BASE_URL: ${AI_OPENAI_BASE_URL:-http://host.docker.internal:1234/v1}
       AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
@@ -148,6 +155,9 @@ services:
       POLICY_SERVICE_URL: http://policy-service:8082
       GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
       GRAPH_URI: ${GRAPH_URI:-}
+    volumes:
+      - ./projects:${PROJECT_RECORDS_ROOT_DIR:-/var/lib/constructraos/projects}
+      - ./runtime/workspaces:${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
     ports:
       - "${ORCHESTRATION_HOST_PORT:-18081}:8081"
 

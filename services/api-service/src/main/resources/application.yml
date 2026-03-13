@@ -40,6 +40,13 @@ graph:
   enabled: ${GRAPH_ENABLED:false}
   uri: ${GRAPH_URI:}
 
+project-records:
+  root-dir: ${PROJECT_RECORDS_ROOT_DIR:projects}
+
+execution:
+  workspaces:
+    root-dir: ${EXECUTION_WORKSPACES_ROOT_DIR:runtime/workspaces}
+
 otel:
   traces:
     exporter: ${OTEL_TRACES_EXPORTER:none}

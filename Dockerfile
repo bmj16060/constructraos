@@ -10,6 +10,7 @@ COPY gradlew gradlew.bat settings.gradle build.gradle gradle.properties ./
 COPY gradle ./gradle
 
 COPY libraries/commons/build.gradle ./libraries/commons/build.gradle
+COPY libraries/project-records/build.gradle ./libraries/project-records/build.gradle
 COPY libraries/orchestration-clients/build.gradle ./libraries/orchestration-clients/build.gradle
 COPY libraries/persistence/build.gradle ./libraries/persistence/build.gradle
 COPY services/api-service/build.gradle ./services/api-service/build.gradle
@@ -25,6 +26,7 @@ RUN --mount=type=cache,target=/root/.gradle \
     ./gradlew --no-daemon help
 
 COPY libraries ./libraries
+COPY projects ./projects
 COPY services ./services
 COPY shared ./shared
 

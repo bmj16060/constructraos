@@ -47,6 +47,13 @@ graph:
   enabled: ${GRAPH_ENABLED:false}
   uri: ${GRAPH_URI:}
 
+project-records:
+  root-dir: ${PROJECT_RECORDS_ROOT_DIR:projects}
+
+execution:
+  workspaces:
+    root-dir: ${EXECUTION_WORKSPACES_ROOT_DIR:runtime/workspaces}
+
 policy:
   service-url: ${POLICY_SERVICE_URL:`http://127.0.0.1:8082`}
   service-enforce: ${POLICY_SERVICE_ENFORCE:true}
