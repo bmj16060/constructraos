@@ -30,16 +30,18 @@ Last updated: 2026-03-13
 - The bridge now speaks the live `codex app-server` JSON-RPC protocol for `initialize`, `thread/start`, `thread/resume`, and `turn/start`, and the execution dispatch contract can carry an existing Codex thread ID for resume-aware follow-up work.
 - The codex-bridge test suite now includes a live integration test that spawns a real `codex app-server`, verifies `thread/start` returns a real thread ID, and proves the bridge can resume that thread after rollout persistence lands.
 - The bridge now also owns the first real callback back into ConstructraOS: after a successful thread start/resume and initial turn submission, it POSTs the accepted execution signal back through the API so the task workflow can update durable state from bridge-driven progress.
+- `api-service` now hosts an explicit Micronaut MCP surface at `/mcp`, `ui-service` proxies that path, and Codex-facing workflow tools now live there instead of on the bridge transport boundary.
+- Task workflow execution request IDs now advance from the repo-backed execution index instead of relying only on in-memory workflow counters, so retries create new durable execution records after worker restarts.
 
 ## Next 3 Tasks
 
-1. Add the first bridge-owned completion/failure callback path so a Codex turn outcome can drive `reportSreEnvironmentOutcome` back into the task workflow.
-2. Add bridge-side handling for the first useful subset of app-server command and tool requests so Codex can move from thread creation into real specialist execution.
+1. Make the agent-side MCP tool loop reliable enough for specialists to query workflow state and report durable outcomes without falling back to conversational error handling.
+2. Resolve the remaining host Codex runtime limitation so specialist threads can actually execute local shell/workspace work after thread start.
 3. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 
 ## Risks
 
 - The first slice now spans orchestration, task management, git workflow, and test execution, so scope can expand too quickly unless the bootstrap contract stays narrow.
-- The bridge can now start or resume Codex threads, submit turns, and signal accepted execution back into the workflow, but it still declines app-server-driven tool execution and does not yet map completed turn outcomes into SRE environment results.
+- The bridge can now start or resume Codex threads against a host-visible workspace path, submit turns, and signal accepted execution back into the workflow, but specialist runs are still blocked by agent runtime limitations and an unreliable workflow-state query path from MCP.
 - Workflow topology is still open: project workflows may own child task workflows or coordinate peer workflows, and the wrong early abstraction could create churn.
 - The graph database boundary is intentional but not implemented yet; early project memory should stay behind a dedicated seam even if v1 uses simpler filesystem-backed artifacts first.

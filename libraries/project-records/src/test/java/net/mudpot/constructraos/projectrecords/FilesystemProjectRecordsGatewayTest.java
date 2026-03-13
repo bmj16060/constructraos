@@ -87,6 +87,33 @@ class FilesystemProjectRecordsGatewayTest {
         assertTrue(Files.readString(projectRoot.resolve("executions").resolve("index.md")).contains("T-0001-exec-1"));
     }
 
+    @Test
+    void listExecutionRequestsSkipsMarkdownSeparatorRows() throws IOException {
+        final Path projectRoot = seedProjectTree();
+        final FilesystemProjectRecordsGateway gateway = new FilesystemProjectRecordsGateway(projectRoot.getParent());
+
+        gateway.writeExecutionRequest(
+            new ProjectExecutionRequestWriteRequest(
+                "constructraos",
+                "T-0001",
+                "T-0001-exec-1",
+                "SRE",
+                "project/constructraos/integration",
+                "dispatched",
+                "",
+                "project-constructraos-task-t-0001",
+                "reportCodexExecutionAccepted",
+                "reportSreEnvironmentOutcome",
+                "Dispatch request for Codex SRE execution."
+            )
+        );
+
+        final List<ProjectExecutionRequestRecord> records = gateway.listExecutionRequests("constructraos", "");
+
+        assertEquals(1, records.size());
+        assertEquals("T-0001-exec-1", records.getFirst().id());
+    }
+
     private Path seedProjectTree() throws IOException {
         final Path projectsRoot = tempDir.resolve("projects");
         final Path projectRoot = projectsRoot.resolve("constructraos");

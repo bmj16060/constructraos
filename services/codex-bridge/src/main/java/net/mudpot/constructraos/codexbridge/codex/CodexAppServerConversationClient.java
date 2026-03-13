@@ -62,13 +62,13 @@ public class CodexAppServerConversationClient implements CodexConversationClient
             );
         }
 
-        final Path workspaceDirectory = resolveWorkspaceDirectory(request);
+        final WorkspaceDirectories workspaceDirectories = resolveWorkspaceDirectories(request);
         final boolean resumingThread = !normalize(request.codexThreadId()).isBlank();
 
         try (CodexAppServerSession session = sessionFactory.open(URI.create(config.url()), config.timeout())) {
             initializeSession(session);
-            final String threadId = startOrResumeThread(session, request, workspaceDirectory, resumingThread);
-            submitTurn(session, threadId, request, workspaceDirectory);
+            final String threadId = startOrResumeThread(session, request, workspaceDirectories.appServerDirectory(), resumingThread);
+            submitTurn(session, threadId, request, workspaceDirectories.appServerDirectory());
             callbackClient.reportAccepted(
                 request,
                 threadId,
@@ -78,7 +78,7 @@ public class CodexAppServerConversationClient implements CodexConversationClient
                 request.executionRequestId(),
                 threadId,
                 "dispatched",
-                buildDispatchNote(workspaceDirectory, resumingThread)
+                buildDispatchNote(workspaceDirectories.appServerDirectory(), resumingThread)
             );
         } catch (RuntimeException exception) {
             throw exception;
@@ -172,6 +172,7 @@ public class CodexAppServerConversationClient implements CodexConversationClient
             You are the ConstructraOS %s specialist handling execution request %s.
             Keep work scoped to the local workspace and the repo context at %s.
             Do not perform destructive actions outside the local workspace or local Compose-defined scope without explicit operator approval.
+            Use explicit ConstructraOS MCP tools for durable workflow signaling when they are available instead of relying on conversational output as a control channel.
             Keep updates concise and preserve the execution request identifiers in your reasoning and notes.
             """.formatted(
             blankToDefault(request.specialistRole(), "generalist"),
@@ -198,6 +199,12 @@ public class CodexAppServerConversationClient implements CodexConversationClient
             Task instructions:
             %s
 
+            Workflow signaling guidance:
+            - The bridge already records initial execution acceptance after the first turn is submitted successfully.
+            - If you are reporting an SRE environment result, use the explicit MCP tool `constructra_report_sre_environment_outcome`.
+            - Use the exact project ID `%s`, task ID `%s`, and branch name `%s` when calling ConstructraOS MCP tools.
+            - Use `constructra_get_task_workflow_state` when you need the current durable workflow state instead of inferring from stale context.
+
             If you run into missing bridge capabilities, explain the blocker clearly in-thread and preserve the execution request context.
             """.formatted(
             blankToDefault(request.executionRequestId(), "unknown"),
@@ -211,28 +218,48 @@ public class CodexAppServerConversationClient implements CodexConversationClient
             blankToDefault(request.callbackFailureSignal(), "unknown"),
             blankToDefault(request.requestedByKind(), "unknown"),
             blankToDefault(request.sessionId(), "unknown"),
-            blankToDefault(request.instructions(), "No additional instructions provided.")
+            blankToDefault(request.instructions(), "No additional instructions provided."),
+            blankToDefault(request.projectId(), "unknown"),
+            blankToDefault(request.taskId(), "unknown"),
+            blankToDefault(request.branchName(), "unknown")
         ).trim();
     }
 
-    private Path resolveWorkspaceDirectory(final CodexExecutionDispatchRequest request) {
+    private WorkspaceDirectories resolveWorkspaceDirectories(final CodexExecutionDispatchRequest request) {
+        final Path localWorkspaceDirectory = resolveLocalWorkspaceDirectory(request);
+        final Path appServerWorkspaceDirectory = resolveAppServerWorkspaceDirectory(request, localWorkspaceDirectory);
+        return new WorkspaceDirectories(localWorkspaceDirectory, appServerWorkspaceDirectory);
+    }
+
+    private Path resolveLocalWorkspaceDirectory(final CodexExecutionDispatchRequest request) {
         final Path configuredWorkspaceRoot = resolveConfiguredWorkspaceRoot(request.workspaceRoot());
-        if (configuredWorkspaceRoot == null) {
-            return processWorkingDirectory;
-        }
-        final String branchName = normalize(request.branchName());
-        final Path workspaceDirectory;
-        try {
-            workspaceDirectory = branchName.isBlank()
-                ? configuredWorkspaceRoot
-                : configuredWorkspaceRoot.resolve(Path.of(branchName)).normalize();
-        } catch (InvalidPathException exception) {
-            return processWorkingDirectory;
-        }
+        final Path workspaceDirectory = resolveWorkspaceDirectory(configuredWorkspaceRoot, request.branchName());
         try {
             Files.createDirectories(workspaceDirectory);
             return workspaceDirectory.toAbsolutePath().normalize();
         } catch (Exception exception) {
+            return processWorkingDirectory;
+        }
+    }
+
+    private Path resolveAppServerWorkspaceDirectory(final CodexExecutionDispatchRequest request, final Path localWorkspaceDirectory) {
+        final Path configuredWorkspaceRoot = resolveAppServerWorkspaceRoot();
+        if (configuredWorkspaceRoot == null) {
+            return localWorkspaceDirectory;
+        }
+        return resolveWorkspaceDirectory(configuredWorkspaceRoot, request.branchName());
+    }
+
+    private Path resolveWorkspaceDirectory(final Path workspaceRoot, final String branchName) {
+        if (workspaceRoot == null) {
+            return processWorkingDirectory;
+        }
+        try {
+            final String normalizedBranchName = normalize(branchName);
+            return normalizedBranchName.isBlank()
+                ? workspaceRoot.toAbsolutePath().normalize()
+                : workspaceRoot.resolve(Path.of(normalizedBranchName)).toAbsolutePath().normalize();
+        } catch (InvalidPathException exception) {
             return processWorkingDirectory;
         }
     }
@@ -252,6 +279,18 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         return null;
     }
 
+    private Path resolveAppServerWorkspaceRoot() {
+        final String configuredWorkspaceRoot = normalize(config.workspaceRootDir());
+        if (configuredWorkspaceRoot.isBlank()) {
+            return null;
+        }
+        try {
+            return Path.of(configuredWorkspaceRoot).toAbsolutePath().normalize();
+        } catch (InvalidPathException exception) {
+            return null;
+        }
+    }
+
     private String buildDispatchNote(final Path workspaceDirectory, final boolean resumingThread) {
         return (resumingThread
             ? "Codex App Server thread resumed and initial turn submitted."
@@ -266,5 +305,8 @@ public class CodexAppServerConversationClient implements CodexConversationClient
 
     private static String normalize(final String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private record WorkspaceDirectories(Path localDirectory, Path appServerDirectory) {
     }
 }

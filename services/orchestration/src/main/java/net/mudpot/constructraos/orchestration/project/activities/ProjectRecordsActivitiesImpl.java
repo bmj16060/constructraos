@@ -10,6 +10,8 @@ import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionReq
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import net.mudpot.constructraos.projectrecords.ProjectRecordsGateway;
 
+import java.util.List;
+
 @Singleton
 public class ProjectRecordsActivitiesImpl implements ProjectRecordsActivities {
     private final ProjectRecordsGateway projectRecordsGateway;
@@ -36,5 +38,10 @@ public class ProjectRecordsActivitiesImpl implements ProjectRecordsActivities {
     @Override
     public ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
         return projectRecordsGateway.writeExecutionRequest(request);
+    }
+
+    @Override
+    public List<ProjectExecutionRequestRecord> listExecutionRequests(final String projectId, final String status) {
+        return projectRecordsGateway.listExecutionRequests(projectId, status);
     }
 }

@@ -9,6 +9,7 @@ codex:
     enabled: ${CODEX_APP_SERVER_ENABLED:false}
     url: ${CODEX_APP_SERVER_URL:}
     timeout-seconds: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:10}
+    workspace-root-dir: ${CODEX_APP_SERVER_WORKSPACE_ROOT_DIR:}
 
 constructra:
   api:

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -158,10 +159,58 @@ class TaskCoordinationWorkflowImplTest {
         }
     }
 
+    @Test
+    void requestQaUsesNextDurableExecutionRequestIdWhenPriorRequestsExist() {
+        try (TestWorkflowEnvironment environment = TestWorkflowEnvironment.newInstance()) {
+            final CapturingProjectRecordsActivities projectRecordsActivities = new CapturingProjectRecordsActivities();
+            projectRecordsActivities.executionRequests.add(
+                new ProjectExecutionRequestRecord(
+                    "T-0001-exec-1",
+                    "/tmp/T-0001-exec-1.md",
+                    "constructraos",
+                    "T-0001",
+                    "SRE",
+                    "project/constructraos/integration",
+                    "failed",
+                    "codex-thread-old",
+                    "project-constructraos-task-t-0001",
+                    "reportCodexExecutionAccepted",
+                    "reportSreEnvironmentOutcome",
+                    "Previous attempt."
+                )
+            );
+            environment.newWorker(TaskQueues.TASK_COORDINATION)
+                .registerWorkflowImplementationFactory(
+                    TaskCoordinationWorkflow.class,
+                    () -> new TaskCoordinationWorkflowImpl(new AllowPolicyActivities(), new StubCodexActivities(), projectRecordsActivities)
+                );
+            environment.start();
+
+            final TaskCoordinationWorkflow workflow = environment.getWorkflowClient().newWorkflowStub(
+                TaskCoordinationWorkflow.class,
+                WorkflowOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.TASK_COORDINATION)
+                    .setWorkflowId("project-constructraos-task-t-0001")
+                    .build()
+            );
+
+            WorkflowClient.start(workflow::run, new TaskWorkflowInput("constructraos", "T-0001", "anonymous", "anon-session-1"));
+            workflow.requestQa(new TaskQaRequestSignal("", "anonymous", "anon-session-1", "Retry QA pass."));
+            environment.sleep(Duration.ofSeconds(1));
+
+            final TaskWorkflowState state = workflow.currentState();
+
+            assertEquals("T-0001-exec-2", state.activeExecutionRequestId());
+            assertEquals("T-0001-exec-2", projectRecordsActivities.latestExecutionRequest.executionRequestId());
+            workflow.close("test-complete");
+        }
+    }
+
     private static final class CapturingProjectRecordsActivities implements ProjectRecordsActivities {
         private ProjectEvidenceWriteRequest latestRequest;
         private ProjectExecutionRequestWriteRequest latestExecutionRequest;
         private int evidenceCount;
+        private final List<ProjectExecutionRequestRecord> executionRequests = new ArrayList<>();
 
         @Override
         public ProjectTaskRecord loadTask(final String projectId, final String taskId) {
@@ -204,7 +253,7 @@ class TaskCoordinationWorkflowImplTest {
         @Override
         public ProjectExecutionRequestRecord writeExecutionRequest(final ProjectExecutionRequestWriteRequest request) {
             this.latestExecutionRequest = request;
-            return new ProjectExecutionRequestRecord(
+            final ProjectExecutionRequestRecord record = new ProjectExecutionRequestRecord(
                 request.executionRequestId(),
                 "/tmp/" + request.executionRequestId() + ".md",
                 request.projectId(),
@@ -218,6 +267,17 @@ class TaskCoordinationWorkflowImplTest {
                 request.callbackFailureSignal(),
                 request.note()
             );
+            executionRequests.removeIf(existing -> existing.id().equals(record.id()));
+            executionRequests.add(record);
+            return record;
+        }
+
+        @Override
+        public List<ProjectExecutionRequestRecord> listExecutionRequests(final String projectId, final String status) {
+            return executionRequests.stream()
+                .filter(record -> record.projectId().equals(projectId))
+                .filter(record -> status == null || status.isBlank() || record.status().equalsIgnoreCase(status))
+                .toList();
         }
     }
 

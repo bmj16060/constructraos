@@ -3,6 +3,11 @@ micronaut:
     name: api-service
   server:
     port: 8080
+  mcp:
+    server:
+      enabled: ${MICRONAUT_MCP_SERVER_ENABLED:true}
+      transport: ${MICRONAUT_MCP_SERVER_TRANSPORT:HTTP}
+      endpoint: ${MICRONAUT_MCP_SERVER_ENDPOINT:/mcp}
 
 datasources:
   default:

@@ -17,6 +17,7 @@ import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEv
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 import net.mudpot.constructraos.orchestration.core.policy.WorkflowPolicyEnforcer;
@@ -155,7 +156,9 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
                 "reportSreEnvironmentOutcome",
                 normalize(request.requestedByKind()),
                 normalize(request.sessionId()),
-                "Prepare a branch-scoped compose environment for QA and signal the workflow back when ready or failed.",
+                "Prepare a branch-scoped compose environment for QA. Use explicit ConstructraOS MCP tools for durable signaling. "
+                    + "When you determine the outcome, call constructra_report_sre_environment_outcome exactly once with status ready or failed. "
+                    + "If the current bridge/tooling boundary prevents environment work, report status failed with a concise blocker note instead of only describing it conversationally.",
                 ""
             )
         );
@@ -348,7 +351,24 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
     }
 
     private String nextExecutionRequestId() {
-        return taskId + "-exec-" + (qaRequestCount + 1);
+        final String prefix = taskId + "-exec-";
+        int nextSuffix = 1;
+        for (final ProjectExecutionRequestRecord record : projectRecordsActivities.listExecutionRequests(projectId, "")) {
+            if (!normalize(record.taskId()).equals(taskId)) {
+                continue;
+            }
+            final String executionRequestId = normalize(record.id());
+            if (!executionRequestId.startsWith(prefix)) {
+                continue;
+            }
+            final String suffix = executionRequestId.substring(prefix.length());
+            try {
+                nextSuffix = Math.max(nextSuffix, Integer.parseInt(suffix) + 1);
+            } catch (NumberFormatException ignored) {
+                // Ignore malformed execution request IDs and continue scanning durable records.
+            }
+        }
+        return prefix + nextSuffix;
     }
 
     private static String joinNotes(final String first, final String second) {

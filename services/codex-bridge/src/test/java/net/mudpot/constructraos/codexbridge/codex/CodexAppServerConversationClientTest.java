@@ -81,6 +81,40 @@ class CodexAppServerConversationClientTest {
     }
 
     @Test
+    void dispatchUsesConfiguredAppServerWorkspaceRootForThreadCwd() throws Exception {
+        final Path localRoot = Files.createTempDirectory("codex-bridge-local-workspaces");
+        final Path appServerRoot = Files.createTempDirectory("codex-bridge-app-server-workspaces");
+        final List<JsonNode> observedParams = new ArrayList<>();
+        final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
+            enabledConfig(appServerRoot),
+            OBJECT_MAPPER,
+            new FakeSessionFactory((method, params) -> {
+                observedParams.add(params);
+                if ("initialize".equals(method)) {
+                    return json("{\"userAgent\":\"codex-test\"}");
+                }
+                if ("thread/start".equals(method)) {
+                    return json("{\"thread\":{\"id\":\"thread-123\"}}");
+                }
+                if ("turn/start".equals(method)) {
+                    return json("{\"turn\":{\"id\":\"turn-1\",\"status\":\"inProgress\",\"error\":null,\"items\":[]}}");
+                }
+                throw new IllegalStateException("Unexpected method " + method);
+            }),
+            (request, codexThreadId, note) -> { },
+            localRoot
+        );
+
+        client.dispatch(request(""));
+
+        assertEquals(
+            appServerRoot.resolve("project/constructraos/integration").toString(),
+            observedParams.get(1).path("cwd").asText()
+        );
+        assertTrue(Files.isDirectory(localRoot.resolve("runtime/workspaces").resolve("project/constructraos/integration")));
+    }
+
+    @Test
     void dispatchResumesExistingThreadWhenThreadIdProvided() throws Exception {
         final List<String> observedMethods = new ArrayList<>();
         final List<String> acceptedThreadIds = new ArrayList<>();
@@ -163,10 +197,15 @@ class CodexAppServerConversationClientTest {
     }
 
     private static CodexAppServerConfig enabledConfig() throws Exception {
+        return enabledConfig(null);
+    }
+
+    private static CodexAppServerConfig enabledConfig(final Path workspaceRootDir) throws Exception {
         final CodexAppServerConfig config = new CodexAppServerConfig();
         set(config, "enabled", true);
         set(config, "url", "ws://127.0.0.1:12345");
         set(config, "timeoutSeconds", 10);
+        set(config, "workspaceRootDir", workspaceRootDir == null ? "" : workspaceRootDir.toString());
         return config;
     }
 

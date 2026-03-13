@@ -13,12 +13,12 @@ import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import net.mudpot.constructraos.apiservice.session.AnonymousSession;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionService;
+import net.mudpot.constructraos.apiservice.workflow.TaskWorkflowOperationsService;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowSignalResponse;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
-import net.mudpot.constructraos.clients.project.TaskCoordinationWorkflowClient;
 
 import java.util.Map;
 
@@ -28,16 +28,16 @@ import static io.micronaut.http.HttpStatus.NOT_FOUND;
 @Controller("/api/projects")
 @ExecuteOn(TaskExecutors.BLOCKING)
 public class TaskWorkflowController {
-    private final TaskCoordinationWorkflowClient taskCoordinationWorkflowClient;
+    private final TaskWorkflowOperationsService taskWorkflowOperationsService;
     private final AnonymousSessionService anonymousSessionService;
     private final PolicyEvaluator policyEvaluator;
 
     public TaskWorkflowController(
-        final TaskCoordinationWorkflowClient taskCoordinationWorkflowClient,
+        final TaskWorkflowOperationsService taskWorkflowOperationsService,
         final AnonymousSessionService anonymousSessionService,
         final PolicyEvaluator policyEvaluator
     ) {
-        this.taskCoordinationWorkflowClient = taskCoordinationWorkflowClient;
+        this.taskWorkflowOperationsService = taskWorkflowOperationsService;
         this.anonymousSessionService = anonymousSessionService;
         this.policyEvaluator = policyEvaluator;
     }
@@ -56,7 +56,7 @@ public class TaskWorkflowController {
         requireAuth("project.task.qa_request", normalizedProjectId, normalizedTaskId, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(
-                taskCoordinationWorkflowClient.requestQa(
+                taskWorkflowOperationsService.requestQa(
                     normalizedProjectId,
                     normalizedTaskId,
                     normalizedRequest.branchName(),
@@ -81,7 +81,7 @@ public class TaskWorkflowController {
         requireAuth("project.task.workflow.view", normalizedProjectId, normalizedTaskId, session);
         try {
             return anonymousSessionService.attachCookieIfNeeded(
-                HttpResponse.ok(taskCoordinationWorkflowClient.currentState(normalizedProjectId, normalizedTaskId)),
+                HttpResponse.ok(taskWorkflowOperationsService.currentState(normalizedProjectId, normalizedTaskId)),
                 session
             );
         } catch (RuntimeException exception) {
@@ -105,7 +105,7 @@ public class TaskWorkflowController {
         requireAuth("project.task.sre_environment.report", normalizedProjectId, normalizedTaskId, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(
-                taskCoordinationWorkflowClient.reportSreEnvironmentOutcome(
+                taskWorkflowOperationsService.reportSreEnvironmentOutcome(
                     normalizedProjectId,
                     normalizedTaskId,
                     normalizedRequest.branchName(),
@@ -136,7 +136,7 @@ public class TaskWorkflowController {
         requireAuth("project.task.codex_execution.accepted", normalizedProjectId, normalizedTaskId, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(
-                taskCoordinationWorkflowClient.reportCodexExecutionAccepted(
+                taskWorkflowOperationsService.reportCodexExecutionAccepted(
                     normalizedProjectId,
                     normalizedTaskId,
                     normalizedRequest.executionRequestId(),

@@ -6,12 +6,12 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import net.mudpot.constructraos.apiservice.session.AnonymousSession;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionConfig;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionService;
+import net.mudpot.constructraos.apiservice.workflow.TaskWorkflowOperationsService;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowSignalResponse;
 import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowState;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
-import net.mudpot.constructraos.clients.project.TaskCoordinationWorkflowClient;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class TaskWorkflowControllerTest {
     @Test
     void requestQaSignalsWorkflowWhenPolicyAllows() {
-        final StubTaskCoordinationWorkflowClient client = new StubTaskCoordinationWorkflowClient();
+        final StubTaskWorkflowOperationsService service = new StubTaskWorkflowOperationsService();
         final CapturingPolicyEvaluator policyEvaluator = new CapturingPolicyEvaluator();
-        client.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "run-1", "requestQa");
-        final TaskWorkflowController controller = new TaskWorkflowController(client, new StubAnonymousSessionService(), policyEvaluator);
+        service.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "run-1", "requestQa");
+        final TaskWorkflowController controller = new TaskWorkflowController(service, new StubAnonymousSessionService(), policyEvaluator);
 
         final TaskWorkflowSignalResponse response = controller.requestQa(
             HttpRequest.POST("/api/projects/constructraos/tasks/T-0001/qa-requests", Map.of()),
@@ -35,11 +35,11 @@ class TaskWorkflowControllerTest {
             new TaskWorkflowController.TaskQaRequestBody("project/constructraos/integration", "Run the first QA pass.")
         ).body();
 
-        assertEquals("constructraos", client.projectId);
-        assertEquals("T-0001", client.taskId);
-        assertEquals("project/constructraos/integration", client.branchName);
-        assertEquals("anonymous", client.actorKind);
-        assertEquals("anon-session-1", client.sessionId);
+        assertEquals("constructraos", service.projectId);
+        assertEquals("T-0001", service.taskId);
+        assertEquals("project/constructraos/integration", service.branchName);
+        assertEquals("anonymous", service.actorKind);
+        assertEquals("anon-session-1", service.sessionId);
         assertEquals("anon-session-1", ((Map<?, ?>) policyEvaluator.lastRequest.input()).get("actor") instanceof Map<?, ?> actor ? actor.get("session_id") : "");
         assertEquals("wf-task", response.workflowId());
     }
@@ -47,7 +47,7 @@ class TaskWorkflowControllerTest {
     @Test
     void currentStateRejectsDeniedPolicy() {
         final TaskWorkflowController controller = new TaskWorkflowController(
-            new StubTaskCoordinationWorkflowClient(),
+            new StubTaskWorkflowOperationsService(),
             new StubAnonymousSessionService(),
             request -> new PolicyEvaluationResult(false, "denied", "constructraos.v1")
         );
@@ -62,9 +62,9 @@ class TaskWorkflowControllerTest {
 
     @Test
     void reportSreEnvironmentOutcomeSignalsWorkflowWhenPolicyAllows() {
-        final StubTaskCoordinationWorkflowClient client = new StubTaskCoordinationWorkflowClient();
-        client.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportSreEnvironmentOutcome");
-        final TaskWorkflowController controller = new TaskWorkflowController(client, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
+        final StubTaskWorkflowOperationsService service = new StubTaskWorkflowOperationsService();
+        service.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportSreEnvironmentOutcome");
+        final TaskWorkflowController controller = new TaskWorkflowController(service, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
 
         final TaskWorkflowSignalResponse response = controller.reportSreEnvironmentOutcome(
             HttpRequest.POST("/api/projects/constructraos/tasks/T-0001/sre-environment-outcomes", Map.of()),
@@ -78,16 +78,16 @@ class TaskWorkflowControllerTest {
             )
         ).body();
 
-        assertEquals("branch-env-01", client.environmentName);
-        assertEquals("ready", client.environmentStatus);
+        assertEquals("branch-env-01", service.environmentName);
+        assertEquals("ready", service.environmentStatus);
         assertEquals("reportSreEnvironmentOutcome", response.signalName());
     }
 
     @Test
     void reportCodexExecutionAcceptedSignalsWorkflowWhenPolicyAllows() {
-        final StubTaskCoordinationWorkflowClient client = new StubTaskCoordinationWorkflowClient();
-        client.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportCodexExecutionAccepted");
-        final TaskWorkflowController controller = new TaskWorkflowController(client, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
+        final StubTaskWorkflowOperationsService service = new StubTaskWorkflowOperationsService();
+        service.response = new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportCodexExecutionAccepted");
+        final TaskWorkflowController controller = new TaskWorkflowController(service, new StubAnonymousSessionService(), new CapturingPolicyEvaluator());
 
         final TaskWorkflowSignalResponse response = controller.reportCodexExecutionAccepted(
             HttpRequest.POST("/api/projects/constructraos/tasks/T-0001/codex-executions/accepted", Map.of()),
@@ -101,12 +101,12 @@ class TaskWorkflowControllerTest {
             )
         ).body();
 
-        assertEquals("T-0001-exec-1", client.executionRequestId);
-        assertEquals("codex-thread-123", client.codexThreadId);
+        assertEquals("T-0001-exec-1", service.executionRequestId);
+        assertEquals("codex-thread-123", service.codexThreadId);
         assertEquals("reportCodexExecutionAccepted", response.signalName());
     }
 
-    private static final class StubTaskCoordinationWorkflowClient extends TaskCoordinationWorkflowClient {
+    private static final class StubTaskWorkflowOperationsService extends TaskWorkflowOperationsService {
         private String projectId;
         private String taskId;
         private String branchName;
@@ -119,7 +119,7 @@ class TaskWorkflowControllerTest {
         private String codexThreadId;
         private TaskWorkflowSignalResponse response;
 
-        private StubTaskCoordinationWorkflowClient() {
+        private StubTaskWorkflowOperationsService() {
             super(null);
         }
 

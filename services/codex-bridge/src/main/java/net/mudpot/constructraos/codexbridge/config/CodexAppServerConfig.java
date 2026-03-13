@@ -16,6 +16,9 @@ public class CodexAppServerConfig {
     @Value("${codex.app-server.timeout-seconds:10}")
     private int timeoutSeconds;
 
+    @Value("${codex.app-server.workspace-root-dir:}")
+    private String workspaceRootDir;
+
     public boolean enabled() {
         return enabled;
     }
@@ -26,5 +29,9 @@ public class CodexAppServerConfig {
 
     public Duration timeout() {
         return Duration.ofSeconds(timeoutSeconds);
+    }
+
+    public String workspaceRootDir() {
+        return workspaceRootDir;
     }
 }

@@ -147,7 +147,12 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             if (cells.size() < 8 || "ID".equalsIgnoreCase(cells.get(0))) {
                 continue;
             }
-            final Path executionPath = Path.of(extractMarkdownLinkTarget(cells.get(7)));
+            final String executionId = normalized(cells.get(0));
+            final String executionPathTarget = normalized(extractMarkdownLinkTarget(cells.get(7)));
+            if (executionId.isBlank() || executionId.startsWith("---") || executionPathTarget.isBlank() || executionPathTarget.startsWith("---")) {
+                continue;
+            }
+            final Path executionPath = Path.of(executionPathTarget);
             final ProjectExecutionRequestRecord record = loadExecutionRequest(projectId, cells.get(0), executionPath);
             if (normalized(status).isBlank() || normalized(status).equalsIgnoreCase(record.status())) {
                 records.add(record);

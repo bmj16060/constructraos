@@ -52,6 +52,7 @@ dependencies {
     implementation 'io.micronaut:micronaut-http-server-netty'
     implementation 'io.micronaut:micronaut-http-client'
     implementation 'io.micronaut:micronaut-jackson-databind'
+    implementation "io.micronaut.mcp:micronaut-mcp-server-java-sdk:${project.findProperty('micronautMcpVersion')}"
     implementation 'io.micronaut.flyway:micronaut-flyway'
     implementation 'io.micronaut.data:micronaut-data-jdbc'
     implementation 'io.micronaut.sql:micronaut-jdbc-hikari'
@@ -70,6 +71,9 @@ dependencies {
 
     testImplementation platform("org.junit:junit-bom:${project.findProperty('junitBomVersion')}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'io.micronaut.test:micronaut-test-junit5'
+    testImplementation "io.micronaut.mcp:micronaut-mcp-client-java-sdk:${project.findProperty('micronautMcpVersion')}"
+    testRuntimeOnly 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
