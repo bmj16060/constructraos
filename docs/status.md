@@ -12,27 +12,17 @@ Last updated: 2026-03-13
 
 ## In Progress
 
-- Simplified Gradle multi-project layout is replacing the older included build-logic pattern with a smaller starter layout.
-- A compose-first deployment path is being wired for local deployment of the full platform baseline, including one durable Postgres instance split into separate app, Temporal, and Temporal visibility databases.
-- Compose image builds now run from the repo root through a shared multi-stage Dockerfile so `docker compose up --build` can compile the full Gradle project and package the resulting artifacts directly into each service image.
-- API requests now bootstrap through a signed anonymous session cookie and `/api/session`, and policy input uses session context instead of a fixed builder actor.
-- The default local UI path now combines baked frontend assets with a host-mounted overlay fallback so clean checkouts still boot while `build:watch` can take over immediately once frontend assets exist on disk.
-- Discovery has now defined the first real domain: project workflows that manage task and bug execution through specialist agents, with ADRs, git branching, and testing as first-class delivery artifacts.
-- The initial domain slice now has a repo-backed markdown contract under `projects/constructraos/` for ADRs, project plans, task state, branch state, and execution evidence.
-- v1 is expected to spawn specialist agents, including an SRE specialist, and provide specialist-specific prompts/guidance instead of stopping at planning-only workflow records.
-- The first long-running task workflow slice now exists as a signal-driven Temporal path that can `signalWithStart` a task workflow, query its state, and write QA evidence through the repo-backed project-records boundary.
-- The task workflow now models the first QA -> SRE handoff state, including SRE environment outcome signals and evidence capture for branch-scoped environment readiness.
-- Compose/runtime roots are now explicitly separated between repo-backed project records and mutable execution workspaces so worker filesystem access is deliberate rather than implicit.
-- The SRE execution path is now pivoting to a Codex-mediated model: workflows dispatch durable execution requests and track Codex thread identity instead of assuming the orchestration container directly runs Compose.
-- The first durable Codex execution-request path now exists end to end: workflows write execution requests, API can list them for consumption, and Codex can callback with acceptance and SRE outcomes.
-- The API now also supports atomic claim of pending execution requests so a Codex thread can stamp its thread ID onto the durable request and acknowledge the workflow in one step.
-- A dedicated `codex-bridge` service boundary now exists in Compose, so orchestration targets the bridge while the bridge owns the future host-local `codex app-server` conversation protocol.
+- The repo-backed markdown project contract under `projects/constructraos/` is still the bootstrap system-of-record while a deeper durable replacement remains undecided.
+- The long-running task workflow and QA -> SRE handoff are in place, but the SRE environment outcome is still reported back by an external caller rather than produced by real specialist execution.
+- The Codex execution seam is durable enough to dispatch, list, claim, and accept execution requests, but it does not yet expose richer progress or completion callbacks back into workflows.
+- `codex-bridge` exists as a dedicated service boundary in Compose, but its `codex app-server` conversation client is still a placeholder rather than a real `thread/start` / `thread/resume` transport implementation.
+- The graph-store seam is still only documented; no concrete graph boundary or implementation has been introduced yet.
 
 ## Next 3 Tasks
 
 1. Replace the placeholder bridge conversation client with a real `codex app-server` protocol client using `thread/start`, `thread/resume`, and turn submission.
-2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
-3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
+2. Produce the SRE environment outcome signal from real Codex-mediated specialist execution instead of relying on an external caller to report that outcome back into the task workflow.
+3. Extend the Codex execution seam beyond acceptance-only callbacks so workflows can observe richer execution progress and completion state without collapsing back into direct container-side execution.
 
 ## Risks
 
