@@ -1,0 +1,27 @@
+# E-0009: Qa Request for T-0001
+
+- Evidence type: qa-request
+- Status: requested
+- Project: constructraos
+- Task: T-0001
+- Branch: `project/constructraos/integration`
+- Environment: planned integration environment
+- Validating specialist: QA
+- Requested by: anonymous
+- Session: faae2d15-c5c4-43e8-8372-90d36891f3f3
+- Workflow: project-constructraos-task-t-0001
+- Created at: 2026-03-13T06:51:07.968822730Z
+- Record: /var/lib/constructraos/projects/constructraos/evidence/E-0009-t-0001-qa-request.md
+
+## Checks
+
+- QA request accepted by the long-running task workflow.
+- Branch and task records were loaded from the repo-backed project contract.
+- Codex SRE execution request dispatched for branch environment preparation.
+- Awaiting SRE environment preparation and smoke validation.
+
+## Notes
+
+Codex App Server thread started and initial turn submitted. Workspace: /Users/brandonjohnson/SourceCode/ConstructraOS/runtime/workspaces/project/constructraos/integration.
+
+Full live Temporal validation run.
