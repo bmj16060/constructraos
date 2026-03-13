@@ -8,6 +8,7 @@ import io.temporal.workflow.Workflow;
 import jakarta.inject.Named;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.LlmActivities;
 import net.mudpot.constructraos.commons.orchestration.project.activities.CodexActivities;
+import net.mudpot.constructraos.commons.orchestration.project.activities.KubectlActivities;
 import net.mudpot.constructraos.commons.orchestration.project.activities.ProjectRecordsActivities;
 import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEvaluationActivities;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.PromptActivities;
@@ -83,6 +84,12 @@ public class TemporalWorkflowStubFactory {
     @Named("codexActivitiesStub")
     CodexActivities codexActivitiesStub() {
         return Workflow.newActivityStub(CodexActivities.class, externalOptions());
+    }
+
+    @Prototype
+    @Named("kubectlActivitiesStub")
+    KubectlActivities kubectlActivitiesStub() {
+        return Workflow.newActivityStub(KubectlActivities.class, externalOptions());
     }
 
 

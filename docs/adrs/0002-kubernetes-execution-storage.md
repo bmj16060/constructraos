@@ -27,6 +27,8 @@ ConstructraOS will use a hybrid storage model for Kubernetes-backed specialist e
 - API and orchestration persist artifact metadata and object references, not large blobs or shared filesystem paths.
 - Shared RWX persistent volumes are not the default workspace model and should be used only as an explicit optimization for non-authoritative caches when justified.
 
+For local Kubernetes branch-team environments, ConstructraOS may use a single team PVC with one repo clone plus multiple `git worktree` checkouts on that volume, provided each active writer gets its own worktree and pods stay within the local same-node storage assumptions.
+
 ## Non-Goals
 
 This ADR does not decide:
@@ -44,6 +46,7 @@ Positive:
 - branch and code truth stays aligned with GitHub instead of drifting into shared volumes
 - durable artifacts can survive pod and namespace teardown
 - storage concerns stay behind an explicit platform seam instead of leaking object-store details through workflows
+- local branch-team collaboration can move forward without introducing RWX storage or one full clone per agent
 
 Negative:
 

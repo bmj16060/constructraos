@@ -21,6 +21,7 @@ import net.mudpot.constructraos.commons.orchestration.system.workflows.HelloWorl
 import net.mudpot.constructraos.commons.orchestration.project.workflows.TaskCoordinationWorkflow;
 import net.mudpot.constructraos.orchestration.config.TemporalWorkerConfig;
 import net.mudpot.constructraos.orchestration.project.activities.CodexActivitiesImpl;
+import net.mudpot.constructraos.orchestration.project.activities.KubectlActivitiesImpl;
 import net.mudpot.constructraos.orchestration.project.activities.ProjectRecordsActivitiesImpl;
 import net.mudpot.constructraos.orchestration.project.workflows.TaskCoordinationWorkflowImpl;
 import net.mudpot.constructraos.orchestration.system.activities.HelloActivitiesImpl;
@@ -45,6 +46,7 @@ public class TemporalWorkerRuntime {
     private final LlmActivitiesImpl llmActivities;
     private final PolicyEvaluationActivitiesImpl policyEvaluationActivities;
     private final CodexActivitiesImpl codexActivities;
+    private final KubectlActivitiesImpl kubectlActivities;
     private final ProjectRecordsActivitiesImpl projectRecordsActivities;
 
     @Inject
@@ -56,6 +58,7 @@ public class TemporalWorkerRuntime {
         final LlmActivitiesImpl llmActivities,
         final PolicyEvaluationActivitiesImpl policyEvaluationActivities,
         final CodexActivitiesImpl codexActivities,
+        final KubectlActivitiesImpl kubectlActivities,
         final ProjectRecordsActivitiesImpl projectRecordsActivities,
         final OpenTracingOptions openTracingOptions
     ) {
@@ -66,6 +69,7 @@ public class TemporalWorkerRuntime {
         this.llmActivities = llmActivities;
         this.policyEvaluationActivities = policyEvaluationActivities;
         this.codexActivities = codexActivities;
+        this.kubectlActivities = kubectlActivities;
         this.projectRecordsActivities = projectRecordsActivities;
         final WorkflowServiceStubs service = WorkflowServiceStubs.newInstance(
             WorkflowServiceStubsOptions.newBuilder().setTarget(config.temporalAddress()).build()
@@ -98,7 +102,7 @@ public class TemporalWorkerRuntime {
     private void registerTaskExecutionWorker() {
         final Worker taskWorker = workerFactory.newWorker(TaskQueues.TASK_COORDINATION);
         taskWorker.registerWorkflowImplementationFactory(TaskCoordinationWorkflow.class, () -> beanContext.createBean(TaskCoordinationWorkflowImpl.class));
-        taskWorker.registerActivitiesImplementations(projectRecordsActivities, policyEvaluationActivities, codexActivities);
+        taskWorker.registerActivitiesImplementations(projectRecordsActivities, policyEvaluationActivities, codexActivities, kubectlActivities);
     }
 
     @EventListener

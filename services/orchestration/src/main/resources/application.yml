@@ -60,6 +60,11 @@ codex:
     url: ${CODEX_BRIDGE_URL:`http://codex-bridge:8083/internal/codex`}
     timeout-seconds: ${CODEX_BRIDGE_TIMEOUT_SECONDS:10}
 
+kubectl:
+  enabled: ${KUBECTL_ENABLED:false}
+  binary: ${KUBECTL_BINARY:kubectl}
+  timeout-seconds: ${KUBECTL_TIMEOUT_SECONDS:60}
+
 policy:
   service-url: ${POLICY_SERVICE_URL:`http://127.0.0.1:8082`}
   service-enforce: ${POLICY_SERVICE_ENFORCE:true}

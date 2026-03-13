@@ -49,6 +49,12 @@
 - Workflow and API state should store artifact metadata and references, not shared filesystem paths or large blobs.
 - Shared RWX persistent volumes are an explicit optimization for caches, not the default collaboration model.
 
+## Kubernetes Control Pattern
+
+- Workflows should not embed ad hoc shell calls for Kubernetes control-plane actions.
+- Kubernetes operations should go through a dedicated orchestration activity boundary so enablement, timeout, logging, and future client replacement stay centralized.
+- The first boundary is `KubectlActivities`; future typed environment-launch activities can compose over it instead of teaching each workflow how to invoke `kubectl`.
+
 ## Policy Pattern
 
 - Services do not embed authorization logic directly in controllers when a reusable decision can live in OPA.

@@ -36,11 +36,13 @@ Last updated: 2026-03-13
 - GitHub App credentials are now available for `bmj16060/constructraos`, establishing the first real path toward GitHub-backed branch, push, and PR operations for isolated specialist executions.
 - The next environment-isolation direction is shifting away from branch-scoped Compose concurrency toward execution-scoped Kubernetes environments, with Compose retained as the local baseline stack.
 - The Kubernetes storage direction is now to keep execution workspaces ephemeral per run, leave source-of-truth code in GitHub, and move durable execution artifacts to an S3-compatible object-store boundary instead of shared writable volumes.
+- The local Kubernetes branch-team path is now narrowed to one team PVC with a shared repo clone and per-agent `git worktree` directories, avoiding shared writable checkouts while keeping local storage simple.
+- Orchestration now has a first `KubectlActivities` seam so future environment launch flows can centralize `kubectl` execution instead of scattering shell calls through workflows.
 
 ## Next 3 Tasks
 
 1. Define the first GitHub-backed execution model so specialist runs can clone, branch, push, and open PRs without relying on host-local worktree reconciliation.
-2. Introduce an execution-scoped Kubernetes environment launcher with ephemeral workspaces and object-storage-backed artifact handling instead of continuing to treat branch-scoped Compose startup as the main concurrency path.
+2. Introduce an execution-scoped Kubernetes environment launcher, starting locally with a team-PVC-plus-worktrees model and then layering artifact handling on top of it instead of continuing to treat branch-scoped Compose startup as the main concurrency path.
 3. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 
 ## Risks
