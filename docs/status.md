@@ -20,7 +20,8 @@ Last updated: 2026-03-13
 
 - The branch code is intentionally back at the bootstrap baseline, with the reusable platform spine and the original hello-world workflow still serving as the executable reference point.
 - Discovery has defined the target domain: project workflows that manage task and bug execution through specialist agents, with ADRs, git branching, testing, and environment lifecycle as first-class delivery artifacts.
-- The repo-backed markdown contract under `projects/constructraos/` remains the intended first durable state boundary for project plans, tasks, branches, evidence, and future environment records.
+- Basecamp is now the chosen long-term project-management system for project planning and coordination.
+- The repo-backed markdown contract under `projects/constructraos/` remains the active bootstrap boundary for work records, branch mapping, evidence, and related execution artifacts until the Basecamp-facing operating model is implemented.
 - ADRs now capture forward direction for Kubernetes execution storage and the local worktree-team model, but those decisions are not yet implemented on this reset branch.
 - The next implementation passes should favor explicit seams and policy surfaces before rebuilding higher-level workflow slices.
 
