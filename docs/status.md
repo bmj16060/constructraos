@@ -2,6 +2,12 @@
 
 Last updated: 2026-03-13
 
+## Reset Note
+
+- The current implementation branch was intentionally reset back to the bootstrap contract/code baseline from commit `031fc49`.
+- The more aggressive functional-slice experiment was preserved as git tag `archive-functional-slices-2026-03-13` for reference and selective cherry-picking.
+- Discovery notes and ADR intent remain the primary guide for rebuilding cleaner abstractions from the bootstrap baseline.
+
 ## Current Focus
 
 - Keep the reusable platform baseline buildable and deployable while shifting the target domain to SDLC agent-team orchestration.
