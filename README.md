@@ -16,6 +16,7 @@ What it does today:
 
 - serves a small UI shell through `nginx`
 - exposes API endpoints for `/api/session`, `/api/workflows/hello-world/run`, `/api/workflows/hello-world/start`, and `/api/workflows/hello-world/history`
+- exposes an MCP HTTP endpoint at `/mcp` with a single `hello` tool
 - runs a Temporal-backed `hello-world` workflow
 - evaluates policy through OPA and the policy service
 - persists workflow run history in Postgres

@@ -1,6 +1,13 @@
 micronaut:
   application:
     name: api-service
+  mcp:
+    server:
+      endpoint: /mcp
+      transport: HTTP
+      info:
+        name: constructraos-api
+        version: 0.1.0
   server:
     port: 8080
 
