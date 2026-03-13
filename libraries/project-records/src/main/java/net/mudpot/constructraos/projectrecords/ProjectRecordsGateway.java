@@ -4,6 +4,7 @@ import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
 
@@ -19,4 +20,6 @@ public interface ProjectRecordsGateway {
     ProjectExecutionRequestRecord writeExecutionRequest(ProjectExecutionRequestWriteRequest request);
 
     List<ProjectExecutionRequestRecord> listExecutionRequests(String projectId, String status);
+
+    ProjectExecutionRequestRecord claimExecutionRequest(ProjectExecutionClaimRequest request);
 }

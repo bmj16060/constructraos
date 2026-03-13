@@ -25,10 +25,11 @@ Last updated: 2026-03-13
 - Compose/runtime roots are now explicitly separated between repo-backed project records and mutable execution workspaces so worker filesystem access is deliberate rather than implicit.
 - The SRE execution path is now pivoting to a Codex-mediated model: workflows dispatch durable execution requests and track Codex thread identity instead of assuming the orchestration container directly runs Compose.
 - The first durable Codex execution-request path now exists end to end: workflows write execution requests, API can list them for consumption, and Codex can callback with acceptance and SRE outcomes.
+- The API now also supports atomic claim of pending execution requests so a Codex thread can stamp its thread ID onto the durable request and acknowledge the workflow in one step.
 
 ## Next 3 Tasks
 
-1. Add the first true MCP-facing Codex claim path so a real Codex thread can atomically claim a pending execution request instead of relying on a plain API read plus callback pattern.
+1. Add the first true Codex adapter process using the supported Codex SDK or App Server so the atomic claim path is exercised by a real Codex integration rather than tests and stubs.
 2. Introduce the first long-running project workflow that coordinates task workflows through signals instead of treating task execution as isolated workflow starts.
 3. Establish the graph-store boundary and Codex integration seam without locking in premature choices about child workflows versus peer workflows.
 

@@ -213,7 +213,10 @@ class TaskCoordinationWorkflowImplTest {
                 request.branchName(),
                 request.status(),
                 request.codexThreadId(),
-                request.workflowId()
+                request.workflowId(),
+                request.callbackSignal(),
+                request.callbackFailureSignal(),
+                request.note()
             );
         }
     }

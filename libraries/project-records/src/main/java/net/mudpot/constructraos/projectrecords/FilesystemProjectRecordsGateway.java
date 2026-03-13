@@ -5,6 +5,7 @@ import jakarta.inject.Singleton;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectBranchRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectEvidenceWriteRequest;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestWriteRequest;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord;
@@ -125,7 +126,10 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             request.branchName(),
             request.status(),
             request.codexThreadId(),
-            request.workflowId()
+            request.workflowId(),
+            request.callbackSignal(),
+            request.callbackFailureSignal(),
+            request.note()
         );
     }
 
@@ -143,22 +147,40 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             if (cells.size() < 8 || "ID".equalsIgnoreCase(cells.get(0))) {
                 continue;
             }
-            final ProjectExecutionRequestRecord record = new ProjectExecutionRequestRecord(
-                cells.get(0),
-                extractMarkdownLinkTarget(cells.get(7)),
-                projectId,
-                cells.get(1),
-                cells.get(2),
-                stripTicks(cells.get(3)),
-                cells.get(4),
-                cells.get(5),
-                ""
-            );
+            final Path executionPath = Path.of(extractMarkdownLinkTarget(cells.get(7)));
+            final ProjectExecutionRequestRecord record = loadExecutionRequest(projectId, cells.get(0), executionPath);
             if (normalized(status).isBlank() || normalized(status).equalsIgnoreCase(record.status())) {
                 records.add(record);
             }
         }
         return List.copyOf(records);
+    }
+
+    @Override
+    public synchronized ProjectExecutionRequestRecord claimExecutionRequest(final ProjectExecutionClaimRequest request) {
+        final String projectId = normalizeRequired(request.projectId(), "projectId");
+        final String executionRequestId = normalizeRequired(request.executionRequestId(), "executionRequestId");
+        final String codexThreadId = normalizeRequired(request.codexThreadId(), "codexThreadId");
+        final Path executionPath = resolveExecutionPath(projectId, executionRequestId);
+        final ProjectExecutionRequestRecord existing = loadExecutionRequest(projectId, executionRequestId, executionPath);
+        if (!"dispatched".equalsIgnoreCase(existing.status())) {
+            throw new IllegalStateException("Execution request is not claimable: " + existing.status());
+        }
+        return writeExecutionRequest(
+            new ProjectExecutionRequestWriteRequest(
+                existing.projectId(),
+                existing.taskId(),
+                existing.id(),
+                existing.specialistRole(),
+                existing.branchName(),
+                "accepted",
+                codexThreadId,
+                existing.workflowId(),
+                existing.callbackSignal(),
+                existing.callbackFailureSignal(),
+                joinNotes(existing.note(), request.note())
+            )
+        );
     }
 
     private Path resolveTaskPath(final String projectId, final String taskId) {
@@ -170,6 +192,18 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
                 .orElseThrow(() -> new ProjectRecordNotFoundException("Task not found: " + taskId));
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to resolve task record for " + taskId, exception);
+        }
+    }
+
+    private Path resolveExecutionPath(final String projectId, final String executionRequestId) {
+        final Path executionDirectory = projectDirectory(projectId).resolve("executions");
+        try (var stream = Files.list(executionDirectory)) {
+            return stream
+                .filter(path -> path.getFileName().toString().startsWith(executionRequestId + "-"))
+                .findFirst()
+                .orElseThrow(() -> new ProjectRecordNotFoundException("Execution request not found: " + executionRequestId));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to resolve execution request record for " + executionRequestId, exception);
         }
     }
 
@@ -232,6 +266,28 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
         builder.append("## Notes\n\n");
         builder.append(nullToBlank(request.note()).isBlank() ? "No additional notes." : request.note()).append("\n");
         return builder.toString();
+    }
+
+    private static ProjectExecutionRequestRecord loadExecutionRequest(
+        final String projectId,
+        final String executionRequestId,
+        final Path executionPath
+    ) {
+        final List<String> lines = readLines(executionPath);
+        return new ProjectExecutionRequestRecord(
+            executionRequestId,
+            executionPath.toString(),
+            projectId,
+            extractValue(lines, "- Task:"),
+            extractValue(lines, "- Specialist role:"),
+            stripTicks(extractValue(lines, "- Branch:")),
+            extractValue(lines, "- Status:"),
+            extractValue(lines, "- Codex thread:"),
+            extractValue(lines, "- Workflow:"),
+            extractValue(lines, "- Callback signal:"),
+            extractValue(lines, "- Callback failure signal:"),
+            extractSection(lines, "## Notes")
+        );
     }
 
     private static void updateEvidenceIndex(
@@ -506,6 +562,39 @@ public class FilesystemProjectRecordsGateway implements ProjectRecordsGateway {
             return normalized.substring(open + 1, close);
         }
         return normalized;
+    }
+
+    private static String extractSection(final List<String> lines, final String heading) {
+        boolean inSection = false;
+        final StringBuilder builder = new StringBuilder();
+        for (String line : lines) {
+            if (line.equals(heading)) {
+                inSection = true;
+                continue;
+            }
+            if (inSection && line.startsWith("## ")) {
+                break;
+            }
+            if (inSection) {
+                if (!builder.isEmpty()) {
+                    builder.append('\n');
+                }
+                builder.append(line);
+            }
+        }
+        return builder.toString().trim();
+    }
+
+    private static String joinNotes(final String first, final String second) {
+        final String left = normalized(first);
+        final String right = normalized(second);
+        if (left.isBlank()) {
+            return right;
+        }
+        if (right.isBlank()) {
+            return left;
+        }
+        return left + "\n\n" + right;
     }
 
     private static String humanizeEvidenceType(final String value) {

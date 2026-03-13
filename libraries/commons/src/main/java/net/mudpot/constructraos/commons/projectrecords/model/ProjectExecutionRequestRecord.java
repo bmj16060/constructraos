@@ -9,6 +9,9 @@ public record ProjectExecutionRequestRecord(
     String branchName,
     String status,
     String codexThreadId,
-    String workflowId
+    String workflowId,
+    String callbackSignal,
+    String callbackFailureSignal,
+    String note
 ) {
 }

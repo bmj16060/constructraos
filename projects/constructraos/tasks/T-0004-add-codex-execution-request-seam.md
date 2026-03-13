@@ -31,4 +31,4 @@ Pivot the SRE execution path away from container-managed Compose and toward a Co
 
 ## Notes
 
-This slice stops at durable request dispatch plus callback wiring. The next expansion is the actual MCP-facing claim/consume path for Codex and richer progress/completion callbacks.
+This slice now includes the first atomic claim path for Codex threads through the API. The next expansion is the true MCP/App-Server-facing consumer and richer progress/completion callbacks.

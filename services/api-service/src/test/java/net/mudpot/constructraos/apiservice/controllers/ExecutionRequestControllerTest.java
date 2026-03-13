@@ -7,8 +7,11 @@ import net.mudpot.constructraos.apiservice.session.AnonymousSession;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionConfig;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionService;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
+import net.mudpot.constructraos.commons.orchestration.project.model.TaskWorkflowSignalResponse;
 import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionRequestRecord;
+import net.mudpot.constructraos.commons.projectrecords.model.ProjectExecutionClaimRequest;
 import net.mudpot.constructraos.projectrecords.ProjectRecordsGateway;
+import net.mudpot.constructraos.orchestrationclients.project.TaskCoordinationWorkflowClient;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -22,6 +25,7 @@ class ExecutionRequestControllerTest {
     void listExecutionRequestsReturnsPendingRequestsWhenPolicyAllows() {
         final ExecutionRequestController controller = new ExecutionRequestController(
             new StubProjectRecordsGateway(),
+            new StubTaskCoordinationWorkflowClient(),
             new StubAnonymousSessionService(),
             request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1")
         );
@@ -40,6 +44,7 @@ class ExecutionRequestControllerTest {
     void listExecutionRequestsRejectsDeniedPolicy() {
         final ExecutionRequestController controller = new ExecutionRequestController(
             new StubProjectRecordsGateway(),
+            new StubTaskCoordinationWorkflowClient(),
             new StubAnonymousSessionService(),
             request -> new PolicyEvaluationResult(false, "denied", "constructraos.v1")
         );
@@ -52,7 +57,33 @@ class ExecutionRequestControllerTest {
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
     }
 
+    @Test
+    void claimExecutionRequestClaimsAndSignalsWorkflow() {
+        final StubProjectRecordsGateway gateway = new StubProjectRecordsGateway();
+        final StubTaskCoordinationWorkflowClient workflowClient = new StubTaskCoordinationWorkflowClient();
+        final ExecutionRequestController controller = new ExecutionRequestController(
+            gateway,
+            workflowClient,
+            new StubAnonymousSessionService(),
+            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1")
+        );
+
+        final ProjectExecutionRequestRecord response = controller.claimExecutionRequest(
+            HttpRequest.POST("/api/projects/constructraos/execution-requests/T-0001-exec-1/claim", List.of()),
+            "constructraos",
+            "T-0001-exec-1",
+            new ExecutionRequestController.ClaimExecutionRequestBody("codex-thread-123", "SRE", "Claimed by Codex.")
+        ).body();
+
+        assertEquals("codex-thread-123", gateway.lastClaim.codexThreadId());
+        assertEquals("T-0001-exec-1", workflowClient.executionRequestId);
+        assertEquals("codex-thread-123", workflowClient.codexThreadId);
+        assertEquals("accepted", response.status());
+    }
+
     private static final class StubProjectRecordsGateway implements ProjectRecordsGateway {
+        private ProjectExecutionClaimRequest lastClaim;
+
         @Override
         public net.mudpot.constructraos.commons.projectrecords.model.ProjectTaskRecord loadTask(final String projectId, final String taskId) {
             throw new UnsupportedOperationException();
@@ -75,7 +106,49 @@ class ExecutionRequestControllerTest {
 
         @Override
         public List<ProjectExecutionRequestRecord> listExecutionRequests(final String projectId, final String status) {
-            return List.of(new ProjectExecutionRequestRecord("T-0001-exec-1", "/tmp/exec.md", projectId, "T-0001", "SRE", "project/constructraos/integration", "dispatched", "", "project-constructraos-task-t-0001"));
+            return List.of(new ProjectExecutionRequestRecord("T-0001-exec-1", "/tmp/exec.md", projectId, "T-0001", "SRE", "project/constructraos/integration", "dispatched", "", "project-constructraos-task-t-0001", "reportCodexExecutionAccepted", "reportSreEnvironmentOutcome", "Dispatch request"));
+        }
+
+        @Override
+        public ProjectExecutionRequestRecord claimExecutionRequest(final ProjectExecutionClaimRequest request) {
+            this.lastClaim = request;
+            return new ProjectExecutionRequestRecord(
+                request.executionRequestId(),
+                "/tmp/exec.md",
+                request.projectId(),
+                "T-0001",
+                "SRE",
+                "project/constructraos/integration",
+                "accepted",
+                request.codexThreadId(),
+                "project-constructraos-task-t-0001",
+                "reportCodexExecutionAccepted",
+                "reportSreEnvironmentOutcome",
+                request.note()
+            );
+        }
+    }
+
+    private static final class StubTaskCoordinationWorkflowClient extends TaskCoordinationWorkflowClient {
+        private String executionRequestId;
+        private String codexThreadId;
+
+        private StubTaskCoordinationWorkflowClient() {
+            super(null);
+        }
+
+        @Override
+        public TaskWorkflowSignalResponse reportCodexExecutionAccepted(
+            final String projectId,
+            final String taskId,
+            final String executionRequestId,
+            final String codexThreadId,
+            final String specialistRole,
+            final String note
+        ) {
+            this.executionRequestId = executionRequestId;
+            this.codexThreadId = codexThreadId;
+            return new TaskWorkflowSignalResponse("TaskCoordinationWorkflow", "wf-task", "task-coordination-task-queue", "", "reportCodexExecutionAccepted");
         }
     }
 
