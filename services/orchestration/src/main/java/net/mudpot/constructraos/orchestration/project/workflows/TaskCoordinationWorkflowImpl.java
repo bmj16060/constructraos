@@ -151,11 +151,12 @@ public class TaskCoordinationWorkflowImpl implements TaskCoordinationWorkflow {
                 branchName,
                 "runtime/workspaces",
                 Workflow.getInfo().getWorkflowId(),
-                "reportSreEnvironmentOutcome",
+                "reportCodexExecutionAccepted",
                 "reportSreEnvironmentOutcome",
                 normalize(request.requestedByKind()),
                 normalize(request.sessionId()),
-                "Prepare a branch-scoped compose environment for QA and signal the workflow back when ready or failed."
+                "Prepare a branch-scoped compose environment for QA and signal the workflow back when ready or failed.",
+                ""
             )
         );
         projectRecordsActivities.writeExecutionRequest(

@@ -12,6 +12,7 @@ public record CodexExecutionDispatchRequest(
     String callbackFailureSignal,
     String requestedByKind,
     String sessionId,
-    String instructions
+    String instructions,
+    String codexThreadId
 ) {
 }

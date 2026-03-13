@@ -10,6 +10,12 @@ codex:
     url: ${CODEX_APP_SERVER_URL:}
     timeout-seconds: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:10}
 
+constructra:
+  api:
+    enabled: ${CONSTRUCTRA_API_ENABLED:false}
+    url: ${CONSTRUCTRA_API_URL:}
+    timeout-seconds: ${CONSTRUCTRA_API_TIMEOUT_SECONDS:10}
+
 otel:
   traces:
     exporter: ${OTEL_TRACES_EXPORTER:none}

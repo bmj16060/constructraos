@@ -28,7 +28,8 @@ class CodexDispatchControllerTest {
                 "reportSreEnvironmentOutcome",
                 "anonymous",
                 "anon-session-1",
-                "Prepare the branch environment."
+                "Prepare the branch environment.",
+                ""
             )
         );
 
