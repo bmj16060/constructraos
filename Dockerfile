@@ -79,6 +79,18 @@ EXPOSE 8082
 
 CMD ["/app/bin/policy-service"]
 
+FROM node:20-alpine AS codex-runtime
+
+RUN apk add --no-cache bash docker-cli docker-cli-compose git
+
+RUN npm install -g @openai/codex@0.104.0
+
+WORKDIR /workspace/constructraos
+
+EXPOSE 18444
+
+CMD ["sh", "-lc", "codex app-server --listen ws://0.0.0.0:18444"]
+
 FROM nginx:1.27-alpine AS ui-service
 
 RUN apk add --no-cache gettext \

@@ -104,7 +104,7 @@ public class CodexAppServerConversationClient implements CodexConversationClient
         final Map<String, Object> threadParams = new LinkedHashMap<>();
         threadParams.put("cwd", workspaceDirectory.toString());
         threadParams.put("approvalPolicy", "never");
-        threadParams.put("sandbox", "workspace-write");
+        threadParams.put("sandbox", normalize(config.sandbox()).isBlank() ? "workspace-write" : normalize(config.sandbox()));
         threadParams.put("model", null);
         threadParams.put("modelProvider", null);
         threadParams.put("config", null);

@@ -77,6 +77,7 @@ class CodexAppServerConversationClientTest {
             tempRoot.resolve("runtime/workspaces").resolve("project/constructraos/integration").toString(),
             observedParams.get(1).path("cwd").asText()
         );
+        assertEquals("workspace-write", observedParams.get(1).path("sandbox").asText());
         assertTrue(observedParams.get(2).path("input").get(0).path("text").asText().contains("Handle ConstructraOS specialist execution request T-0001-exec-1."));
     }
 
@@ -112,6 +113,34 @@ class CodexAppServerConversationClientTest {
             observedParams.get(1).path("cwd").asText()
         );
         assertTrue(Files.isDirectory(localRoot.resolve("runtime/workspaces").resolve("project/constructraos/integration")));
+    }
+
+    @Test
+    void dispatchUsesConfiguredSandboxModeForThreadStart() throws Exception {
+        final List<JsonNode> observedParams = new ArrayList<>();
+        final CodexAppServerConversationClient client = new CodexAppServerConversationClient(
+            enabledConfig(null, "danger-full-access"),
+            OBJECT_MAPPER,
+            new FakeSessionFactory((method, params) -> {
+                observedParams.add(params);
+                if ("initialize".equals(method)) {
+                    return json("{\"userAgent\":\"codex-test\"}");
+                }
+                if ("thread/start".equals(method)) {
+                    return json("{\"thread\":{\"id\":\"thread-123\"}}");
+                }
+                if ("turn/start".equals(method)) {
+                    return json("{\"turn\":{\"id\":\"turn-1\",\"status\":\"inProgress\",\"error\":null,\"items\":[]}}");
+                }
+                throw new IllegalStateException("Unexpected method " + method);
+            }),
+            (request, codexThreadId, note) -> { },
+            Path.of(".").toAbsolutePath().normalize()
+        );
+
+        client.dispatch(request(""));
+
+        assertEquals("danger-full-access", observedParams.get(1).path("sandbox").asText());
     }
 
     @Test
@@ -197,15 +226,20 @@ class CodexAppServerConversationClientTest {
     }
 
     private static CodexAppServerConfig enabledConfig() throws Exception {
-        return enabledConfig(null);
+        return enabledConfig(null, "workspace-write");
     }
 
     private static CodexAppServerConfig enabledConfig(final Path workspaceRootDir) throws Exception {
+        return enabledConfig(workspaceRootDir, "workspace-write");
+    }
+
+    private static CodexAppServerConfig enabledConfig(final Path workspaceRootDir, final String sandbox) throws Exception {
         final CodexAppServerConfig config = new CodexAppServerConfig();
         set(config, "enabled", true);
         set(config, "url", "ws://127.0.0.1:12345");
         set(config, "timeoutSeconds", 10);
         set(config, "workspaceRootDir", workspaceRootDir == null ? "" : workspaceRootDir.toString());
+        set(config, "sandbox", sandbox);
         return config;
     }
 

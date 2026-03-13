@@ -10,6 +10,7 @@ codex:
     url: ${CODEX_APP_SERVER_URL:}
     timeout-seconds: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:10}
     workspace-root-dir: ${CODEX_APP_SERVER_WORKSPACE_ROOT_DIR:}
+    sandbox: ${CODEX_APP_SERVER_SANDBOX:workspace-write}
 
 constructra:
   api:

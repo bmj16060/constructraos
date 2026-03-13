@@ -19,6 +19,9 @@ public class CodexAppServerConfig {
     @Value("${codex.app-server.workspace-root-dir:}")
     private String workspaceRootDir;
 
+    @Value("${codex.app-server.sandbox:workspace-write}")
+    private String sandbox;
+
     public boolean enabled() {
         return enabled;
     }
@@ -33,5 +36,9 @@ public class CodexAppServerConfig {
 
     public String workspaceRootDir() {
         return workspaceRootDir;
+    }
+
+    public String sandbox() {
+        return sandbox;
     }
 }

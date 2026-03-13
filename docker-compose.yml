@@ -1,4 +1,15 @@
 services:
+  docker-engine:
+    image: docker:27-dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    command: ["dockerd", "--host=tcp://0.0.0.0:2375"]
+    volumes:
+      - docker-engine-data:/var/lib/docker
+      - ./:${CONSTRUCTRAOS_RUNTIME_REPO_PATH:-/workspace/constructraos}:ro
+      - ./runtime/workspaces:${CONSTRUCTRAOS_RUNTIME_REPO_PATH:-/workspace/constructraos}/runtime/workspaces
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -87,12 +98,18 @@ services:
       context: .
       dockerfile: Dockerfile
       target: codex-bridge
+    depends_on:
+      - codex-runtime
     environment:
       CODEX_APP_SERVER_ENABLED: ${CODEX_APP_SERVER_ENABLED:-false}
-      CODEX_APP_SERVER_URL: ${CODEX_APP_SERVER_URL:-}
+      CODEX_APP_SERVER_URL: ${CODEX_APP_SERVER_URL:-ws://codex-runtime:18444}
       CODEX_APP_SERVER_TIMEOUT_SECONDS: ${CODEX_APP_SERVER_TIMEOUT_SECONDS:-10}
       EXECUTION_WORKSPACES_ROOT_DIR: ${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
-      CODEX_APP_SERVER_WORKSPACE_ROOT_DIR: ${CODEX_APP_SERVER_WORKSPACE_ROOT_DIR:-}
+      CODEX_APP_SERVER_WORKSPACE_ROOT_DIR: ${CODEX_APP_SERVER_WORKSPACE_ROOT_DIR:-/workspace/constructraos/runtime/workspaces}
+      CODEX_APP_SERVER_SANDBOX: ${CODEX_APP_SERVER_SANDBOX:-danger-full-access}
+      CONSTRUCTRA_API_ENABLED: ${CONSTRUCTRA_API_ENABLED:-true}
+      CONSTRUCTRA_API_URL: ${CONSTRUCTRA_API_URL:-http://api-service:8080}
+      CONSTRUCTRA_API_TIMEOUT_SECONDS: ${CONSTRUCTRA_API_TIMEOUT_SECONDS:-10}
       OTEL_TRACES_EXPORTER: otlp
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_TRACES_SAMPLER: always_on
@@ -100,6 +117,48 @@ services:
       - ./runtime/workspaces:${EXECUTION_WORKSPACES_ROOT_DIR:-/var/lib/constructraos/workspaces}
     ports:
       - "${CODEX_BRIDGE_HOST_PORT:-18083}:8083"
+
+  codex-runtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: codex-runtime
+    depends_on:
+      - docker-engine
+    environment:
+      CODEX_HOME: /root/.codex
+      DOCKER_HOST: tcp://docker-engine:2375
+      CODEX_CONTAINER_MCP_URL: http://api-service:8080/mcp
+      CONSTRUCTRAOS_RUNTIME_REPO_PATH: ${CONSTRUCTRAOS_RUNTIME_REPO_PATH:-/workspace/constructraos}
+    volumes:
+      - ${HOME}/.codex:/host-codex:ro
+      - ./:${CONSTRUCTRAOS_RUNTIME_REPO_PATH:-/workspace/constructraos}:ro
+      - ./runtime/workspaces:${CONSTRUCTRAOS_RUNTIME_REPO_PATH:-/workspace/constructraos}/runtime/workspaces
+    ports:
+      - "${CODEX_RUNTIME_HOST_PORT:-18444}:18444"
+    command:
+      - sh
+      - -lc
+      - |
+        mkdir -p /root/.codex
+        if [ -f /host-codex/auth.json ]; then
+          cp /host-codex/auth.json /root/.codex/auth.json
+        fi
+        cat > /root/.codex/config.toml <<EOF
+        model = "gpt-5.4"
+        model_reasoning_effort = "high"
+        model_context_window = 512000
+
+        [mcp_servers.constructraos]
+        url = "$${CODEX_CONTAINER_MCP_URL}"
+
+        [projects."$${CONSTRUCTRAOS_RUNTIME_REPO_PATH}"]
+        trust_level = "trusted"
+
+        [projects."$${CONSTRUCTRAOS_RUNTIME_REPO_PATH}/runtime/workspaces"]
+        trust_level = "trusted"
+        EOF
+        exec codex app-server --listen ws://0.0.0.0:18444
 
   api-service:
     build:
@@ -204,4 +263,5 @@ services:
       - "${UI_SERVICE_HOST_PORT:-18090}:8090"
 
 volumes:
+  docker-engine-data:
   postgres-data:
