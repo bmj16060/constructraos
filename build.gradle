@@ -25,7 +25,6 @@ subprojects {
 tasks.register('dockerBuild') {
     dependsOn(
         ':services:api-service:dockerBuild',
-        ':services:codex-bridge:dockerBuild',
         ':services:orchestration:dockerBuild',
         ':services:policy-service:dockerBuild',
         ':services:ui-service:dockerBuild'

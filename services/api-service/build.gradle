@@ -59,9 +59,8 @@ dependencies {
     implementation 'io.micronaut.tracing:micronaut-tracing-opentelemetry-http'
     implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     implementation project(':libraries:commons')
-    implementation project(':libraries:project-records')
     implementation project(':libraries:persistence')
-    implementation project(':libraries:clients')
+    implementation project(':libraries:orchestration-clients')
     runtimeOnly 'org.postgresql:postgresql'
     runtimeOnly 'org.flywaydb:flyway-core'
     runtimeOnly 'org.flywaydb:flyway-database-postgresql'

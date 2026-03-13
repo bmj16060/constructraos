@@ -13,11 +13,9 @@ rootProject.name = 'constructraos'
 
 include(
     ':libraries:commons',
-    ':libraries:project-records',
     ':libraries:persistence',
-    ':libraries:clients',
+    ':libraries:orchestration-clients',
     ':services:api-service',
-    ':services:codex-bridge',
     ':services:orchestration',
     ':services:policy-service',
     ':services:ui-service'

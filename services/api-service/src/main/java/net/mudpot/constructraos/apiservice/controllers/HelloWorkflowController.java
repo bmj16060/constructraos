@@ -20,8 +20,8 @@ import net.mudpot.constructraos.commons.orchestration.system.model.HelloWorldRes
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
 import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
-import net.mudpot.constructraos.clients.model.WorkflowStartResponse;
-import net.mudpot.constructraos.clients.system.HelloWorldWorkflowClient;
+import net.mudpot.constructraos.orchestrationclients.model.WorkflowStartResponse;
+import net.mudpot.constructraos.orchestrationclients.system.HelloWorldWorkflowClient;
 import net.mudpot.constructraos.persistence.history.HelloHistoryQueryService;
 
 import java.util.List;
