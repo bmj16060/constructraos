@@ -26,8 +26,8 @@ Create the first durable repo-backed contract for project, ADR, task, bug, branc
 - [x] ADR for the bootstrap tracking boundary is accepted
 - [x] `projects/constructraos/` exists with project record and indexes
 - [x] bootstrap contract is documented
-- [ ] first specialist guidance is present
-- [ ] status docs reflect the repo-backed contract as the active baseline
+- [x] first specialist guidance is present
+- [x] status docs reflect the repo-backed contract as the active baseline
 
 ## Notes
 
