@@ -75,6 +75,8 @@ Activity responsibilities:
 
 This keeps non-deterministic Codex execution out of workflow code while avoiding an early commitment to a specific hosting model.
 
+In this model, a Codex interaction is an atomic worker turn, but a higher-level workflow step may still span multiple turns when follow-up execution, consultation, or human input is required before that step is complete.
+
 ## Planning Artifact Model
 
 The current repo process turns a concept into:
@@ -130,6 +132,7 @@ Normalized tables:
 - `workspaces`
 - `tasks`
 - `task_steps`
+- `agent_turns`
 - `agent_sessions`
 - `human_questions`
 - `change_sets`
@@ -154,8 +157,12 @@ Expected table roles:
   - project-scoped orchestration unit
   - goal, status, requested agent, requested by, timestamps
 - `task_steps`
-  - one row per atomic agent turn
-  - agent role, turn number, status, linked workspace, linked session, timing metadata
+  - one row per workflow-managed step in the orchestration process
+  - a step may include one or more atomic Codex turns over time
+  - agent role, step number, status, linked workspace, linked session, timing metadata
+- `agent_turns`
+  - optional finer-grained execution record when individual Codex turns need to be modeled separately from higher-level task steps
+  - turn number, linked task step, session linkage, execution metadata
 - `agent_sessions`
   - project-scoped Codex session continuity by task and agent role
 - `human_questions`
@@ -170,7 +177,7 @@ Expected table roles:
   - provider binding such as GitHub pull request metadata
   - external IDs, URLs, provider type, synchronization metadata
 - `transcript_records`
-  - relational keys for project/task/step/session lookup
+  - relational keys for project/task/step/turn/session lookup
   - raw transcript event stream stored in `jsonb`
 - `task_step_results`
   - schema-validated structured result payload stored in `jsonb`
