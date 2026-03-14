@@ -36,7 +36,7 @@ class HelloMcpToolTest {
         @SuppressWarnings("unchecked")
         final List<Map<String, Object>> tools = (List<Map<String, Object>>) result.get("tools");
 
-        assertEquals(List.of("hello"), tools.stream().map(tool -> String.valueOf(tool.get("name"))).toList());
+        assertEquals(List.of("hello", "task_list", "task_start", "task_status"), tools.stream().map(tool -> String.valueOf(tool.get("name"))).sorted().toList());
     }
 
     @Test

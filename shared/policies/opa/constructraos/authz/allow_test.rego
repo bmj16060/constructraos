@@ -1,11 +1,19 @@
 package constructraos.authz
 
 test_run_allowed if {
-  allow with input as {"action": "workflow.hello_world.run"}
+  allow with input as {"action": "api.hello_world.run"}
 }
 
 test_codex_run_allowed if {
-  allow with input as {"action": "workflow.codex_execution.run"}
+  allow with input as {"action": "api.codex_execution.run"}
+}
+
+test_task_start_allowed if {
+  allow with input as {"action": "api.tasks.start"}
+}
+
+test_task_read_allowed if {
+  allow with input as {"action": "api.tasks.read"}
 }
 
 test_execute_allowed_for_valid_use_case if {

@@ -17,6 +17,15 @@ Use tools to tighten execution, not to replace the repo docs. For this project, 
 - When a stable repo convention or user workflow preference is likely to matter in later turns, capture it in Memory unless the repo docs already cover it well enough.
 - Store durable project knowledge in one place. Do not duplicate the same fact across repo docs, Memory, and ad hoc notes unless there is a clear resume benefit.
 
+## ConstructraOS MCP Server
+
+- A local Codex config may register the repo's MCP endpoint as `constructraos` at `http://localhost:18090/mcp` for convenience when the compose stack is running.
+- That path intentionally goes through the `ui-service` reverse proxy rather than depending on the API container port directly.
+- Treat that registration as optional convenience, not as a baseline development dependency.
+- The repo is not yet at the point where normal development should rely on its own MCP surface.
+- For now, prefer direct code reads, Gradle tests, compose verification, and direct HTTP checks over depending on the repo MCP tools for implementation work.
+- The current MCP surface is useful mainly for light task start/status inspection plus read-only task resources and can be unavailable whenever the local stack is not running.
+
 ## sequential-thinking
 
 Use `sequential-thinking` when the task needs structured reasoning before acting.

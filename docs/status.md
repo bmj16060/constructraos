@@ -13,8 +13,8 @@ Last updated: 2026-03-14
 - TASK-001 is now implemented: a Temporal workflow can invoke Codex through a dedicated activity and return the minimal structured result contract without persistence.
 - TASK-001A is now implemented: Compose uses a dedicated `codex-runtime` Java service so orchestration no longer depends on the host operator's `~/.codex` directory.
 - TASK-002 is now implemented: Codex orchestration state persists through generic task execution records in PostgreSQL and is queryable outside Temporal.
-- The next platform extension is TASK-003 API and MCP task surfaces on top of the durable task state.
-- A near-follow-on slice is TASK-003A: a basic secondary task console page in the UI shell, linked from the current landing page rather than replacing it.
+- TASK-003 is now implemented: API and MCP task surfaces can start work and read project-scoped durable task status on top of the persisted orchestration state.
+- The next platform extension is TASK-003A: a basic secondary task console page in the UI shell, linked from the current landing page rather than replacing it.
 
 ## In Progress
 
@@ -25,13 +25,17 @@ Last updated: 2026-03-14
 - TASK-002 added retry-safe PostgreSQL-backed task execution persistence with generic project, task, step, session, transcript, and result records under `libraries/persistence/tasks`.
 - TASK-002 verification now includes live successful and failed `codex-execution` runs against the compose-served stack, not only targeted module tests.
 - Codex auth for Compose now comes from explicit `.env` configuration or repo-local `.codex-runtime/`, not implicit host-home state.
+- TASK-003 added thin `/api/tasks` start/status/list handlers plus MCP task tools backed by the shared typed workflow client and persistence query service.
+- TASK-003 now defaults the compose-served task surface to `/workspace` so browser and MCP callers resolve the mounted project path instead of the API container workdir.
+- API/MCP ingress policy actions now use the `api.*` namespace while workflow-side deterministic checks remain under `workflow.*`, matching the older Aviation split.
+- The repo now has an `AuthPolicy` interceptor again at the API and MCP boundary so ingress policy enforcement is declarative rather than only imperative.
 - The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks
 
-1. Expose task start/status and MCP task tools on top of durable orchestration state.
-2. Add a basic secondary task console page in the UI shell on top of the TASK-003 API.
-3. Add workspace leasing once task state and execution records are durable enough to coordinate write access safely.
+1. Add a basic secondary task console page in the UI shell on top of the TASK-003 API.
+2. Add workspace leasing once task state and execution records are durable enough to coordinate write access safely.
+3. Add change and review records after workspace identity is durable enough to anchor review targets safely.
 
 ## Risks
 

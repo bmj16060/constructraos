@@ -10,9 +10,6 @@ import net.mudpot.constructraos.clients.model.WorkflowStartResponse;
 import net.mudpot.constructraos.clients.system.CodexExecutionWorkflowClient;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionRequest;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -25,12 +22,10 @@ class CodexExecutionWorkflowControllerTest {
     @Test
     void runUsesWorkflowClientWhenPolicyAllows() {
         final StubCodexExecutionWorkflowClient client = new StubCodexExecutionWorkflowClient();
-        final CapturingPolicyEvaluator policyEvaluator = new CapturingPolicyEvaluator();
         client.runResponse = new CodexExecutionResult("completed", "Codex returned the structured result.", "none");
         final CodexExecutionWorkflowController controller = new CodexExecutionWorkflowController(
             client,
-            new StubAnonymousSessionService(),
-            policyEvaluator
+            new StubAnonymousSessionService()
         );
 
         final CodexExecutionResult response = controller.run(
@@ -44,15 +39,13 @@ class CodexExecutionWorkflowControllerTest {
         assertEquals("anonymous", client.actorKind);
         assertEquals("anon-session-1", client.sessionId);
         assertEquals("completed", response.status());
-        assertEquals("anon-session-1", ((Map<?, ?>) policyEvaluator.lastRequest.input()).get("actor") instanceof Map<?, ?> actor ? actor.get("session_id") : "");
     }
 
     @Test
     void rejectsBlankPrompt() {
         final CodexExecutionWorkflowController controller = new CodexExecutionWorkflowController(
             new StubCodexExecutionWorkflowClient(),
-            new StubAnonymousSessionService(),
-            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1")
+            new StubAnonymousSessionService()
         );
 
         final HttpStatusException exception = assertThrows(
@@ -64,22 +57,19 @@ class CodexExecutionWorkflowControllerTest {
     }
 
     @Test
-    void startRejectsDeniedPolicy() {
+    void startUsesWorkflowClientWhenRequestIsValid() {
+        final StubCodexExecutionWorkflowClient client = new StubCodexExecutionWorkflowClient();
         final CodexExecutionWorkflowController controller = new CodexExecutionWorkflowController(
-            new StubCodexExecutionWorkflowClient(),
-            new StubAnonymousSessionService(),
-            request -> new PolicyEvaluationResult(false, "denied", "constructraos.v1")
+            client,
+            new StubAnonymousSessionService()
         );
 
-        final HttpStatusException exception = assertThrows(
-            HttpStatusException.class,
-            () -> controller.start(
-                HttpRequest.POST("/api/workflows/codex-execution/start", Map.of()),
-                new CodexExecutionRequest("Summarize the next step.", "", "", "")
-            )
+        final var response = controller.start(
+            HttpRequest.POST("/api/workflows/codex-execution/start", Map.of()),
+            new CodexExecutionRequest("Summarize the next step.", "", "", "")
         );
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("wf-1", response.body().workflowId());
     }
 
     private static final class StubCodexExecutionWorkflowClient extends CodexExecutionWorkflowClient {
@@ -132,16 +122,6 @@ class CodexExecutionWorkflowControllerTest {
         @Override
         public AnonymousSession ensureSession(final HttpRequest<?> request) {
             return new AnonymousSession("anon-session-1", "anonymous", Instant.parse("2026-03-14T00:00:00Z"), false);
-        }
-    }
-
-    private static final class CapturingPolicyEvaluator implements PolicyEvaluator {
-        private PolicyEvaluationRequest lastRequest;
-
-        @Override
-        public PolicyEvaluationResult evaluate(final PolicyEvaluationRequest request) {
-            this.lastRequest = request;
-            return new PolicyEvaluationResult(true, "allowed", "constructraos.v1");
         }
     }
 }
