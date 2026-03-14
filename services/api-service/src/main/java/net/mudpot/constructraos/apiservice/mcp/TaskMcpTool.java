@@ -21,7 +21,7 @@ public class TaskMcpTool {
 
     @Tool(
         name = "task_start",
-        description = "Start a Codex-backed task for the active project or an explicit working directory.",
+        description = "Start a task for the active project or an explicit working directory.",
         annotations = @Tool.ToolAnnotations(
             title = "Start Task",
             readOnlyHint = false,
@@ -45,7 +45,7 @@ public class TaskMcpTool {
 
     @Tool(
         name = "task_status",
-        description = "Read the persisted status for a task by workflow ID.",
+        description = "Read persisted status for a task by workflow ID.",
         annotations = @Tool.ToolAnnotations(
             title = "Task Status",
             readOnlyHint = true,
@@ -61,7 +61,7 @@ public class TaskMcpTool {
 
     @Tool(
         name = "task_list",
-        description = "List recent persisted tasks for the active project or an explicit working directory.",
+        description = "List recent tasks for the active project or an explicit working directory.",
         annotations = @Tool.ToolAnnotations(
             title = "Recent Tasks",
             readOnlyHint = true,

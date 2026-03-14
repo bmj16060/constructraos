@@ -19,7 +19,7 @@ What it does today:
 - exposes task API endpoints at `/api/tasks/start`, `/api/tasks`, and `/api/tasks/{workflowId}`
 - exposes an MCP HTTP endpoint at `/mcp` with `hello`, `task_start`, `task_list`, and `task_status` tools
 - runs a Temporal-backed `hello-world` workflow
-- runs Codex-backed task workflows with durable task status persisted in Postgres
+- runs the current task workflow slice with durable task status persisted in Postgres
 - evaluates policy through OPA and the policy service
 - persists workflow run history in Postgres
 - emits traces through OpenTelemetry and Jaeger
