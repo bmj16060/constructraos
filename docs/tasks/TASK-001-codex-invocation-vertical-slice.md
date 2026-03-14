@@ -7,6 +7,7 @@ Date: 2026-03-14
 Related:
 
 - [ADR-001: Codex Orchestration Boundaries](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-001-codex-orchestration-boundaries.md)
+- [TASK-000: Rename `libraries/orchestration-clients` to `libraries/clients`](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-000-rename-orchestration-clients.md)
 
 ## Goal
 
@@ -30,7 +31,7 @@ If that seam is not solid, persistence and richer domain modeling are premature.
 - one minimal structured result schema
 - one atomic Codex interaction for the first execution path
 - common workflow and activity contracts added through `libraries/commons`
-- a typed workflow client path added through `libraries/orchestration-clients`
+- a typed workflow client path added through `libraries/clients`
 - verification through Temporal workflow result, activity output, and logs
 
 ## Out of Scope
@@ -67,7 +68,7 @@ Later milestones may also allow a single workflow-managed step to span multiple 
 
 1. Define the minimal workflow input and output contracts in `libraries/commons`.
 2. Define the first Codex execution adapter contract.
-3. Add a typed workflow client adapter in `libraries/orchestration-clients`.
+3. Add a typed workflow client adapter in `libraries/clients`.
 4. Implement one Temporal workflow that performs a single execution step.
 5. Implement one activity that calls the execution adapter.
 6. Run the workflow against a real local Codex invocation path.

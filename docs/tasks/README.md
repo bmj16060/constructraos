@@ -14,6 +14,7 @@ Keep task documents focused on execution order and delivery slices.
 
 Current planned sequence:
 
+- `TASK-000` rename `libraries/orchestration-clients` to `libraries/clients`
 - `TASK-001` prove workflow-to-Codex invocation with a simple structured result
 - `TASK-002` persist execution state in PostgreSQL
 - `TASK-003` expose task start/status through API and MCP

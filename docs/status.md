@@ -16,13 +16,13 @@ Last updated: 2026-03-14
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the next backend slice.
-- The implementation ladder is now captured in `TASK-001` through `TASK-010`, including the later self-building phase.
+- The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks
 
-1. Prove the first closed loop: a Temporal workflow invokes Codex through an activity and receives a simple structured response.
-2. Add PostgreSQL schema and persistence boundaries after the invocation seam is proven.
-3. Expose the first task start/status path through API and MCP boundaries once invocation and persistence are both in place.
+1. Rename `libraries/orchestration-clients` to `libraries/clients` before expanding that boundary further.
+2. Prove the first closed loop: a Temporal workflow invokes Codex through an activity and receives a simple structured response.
+3. Add PostgreSQL schema and persistence boundaries after the invocation seam is proven.
 
 ## Risks
 
