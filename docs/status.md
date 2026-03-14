@@ -15,7 +15,7 @@ Last updated: 2026-03-14
 - TASK-002 is now implemented: Codex orchestration state persists through generic task execution records in PostgreSQL and is queryable outside Temporal.
 - TASK-003 is now implemented: API and MCP task surfaces can start work and read project-scoped durable task status on top of the persisted orchestration state.
 - ADR-002 is now accepted: ConstructraOS will move toward an app-server-backed Temporal execution model with async activity completion, workflow messaging, explicit reconciliation, PostgreSQL-backed runtime coordination, and Valkey as an optional acceleration layer.
-- The next execution architecture extension is TASK-003A: an app-server-backed Temporal runtime delivered through child milestones under `docs/tasks/TASK-003A/`.
+- TASK-003A is now in progress: the first child milestone added a dedicated runtime coordination persistence boundary while preserving the current blocking execution path and the `CODEX_RUNTIME_MODE=cli` fallback.
 
 ## In Progress
 
@@ -30,15 +30,17 @@ Last updated: 2026-03-14
 - Codex auth for Compose now comes from explicit `.env` configuration or repo-local `.codex-runtime/`, not implicit host-home state.
 - TASK-003 added thin `/api/tasks` start/status/list handlers plus MCP task tools backed by the shared typed workflow client and persistence query service.
 - TASK-003 now defaults the compose-served task surface to `/workspace` so browser and MCP callers resolve the mounted project path instead of the API container workdir.
+- TASK-003A-01 is now complete: `libraries/persistence/runtimecoordination` owns durable runtime execution and checkpoint records separately from task projection tables.
+- The current blocking execution flow now seeds and completes runtime coordination records with `legacy-blocking` execution mode so recovery metadata exists before the app-server runtime lands.
 - API/MCP ingress policy actions now use the `api.*` namespace while workflow-side deterministic checks remain under `workflow.*`, matching the older Aviation split.
 - The repo now has an `AuthPolicy` interceptor again at the API and MCP boundary so ingress policy enforcement is declarative rather than only imperative.
 - The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks
 
-1. Add runtime coordination persistence for app-server-backed execution recovery.
-2. Add an app-server-backed session runtime in `codex-runtime`.
-3. Add Temporal async execution, signaling, health checks, and reconciliation for Codex turns.
+1. Add an app-server-backed session runtime in `codex-runtime`.
+2. Add Temporal async execution, signaling, health checks, and reconciliation for Codex turns.
+3. Expose richer progress and approval state through the existing task projection surfaces.
 
 ## Risks
 
@@ -49,3 +51,4 @@ Last updated: 2026-03-14
 - Transcript payload size may eventually outgrow PostgreSQL-only storage, even though storing transcript events in `jsonb` is acceptable for the first slice.
 - The supported Codex runtime path now depends on explicit container credentials through `OPENAI_API_KEY` or repo-local `.codex-runtime/auth.json`; an unconfigured runtime still boots but Codex workflow execution will fail until that boundary is configured.
 - Live verification currently assumes the `constructraos` app database can be reset during platform development when schema history or verification runs need a clean application state.
+- Runtime coordination persistence is now durable, but the live runtime and Temporal layers still use the older blocking turn contract until the remaining TASK-003A milestones land.

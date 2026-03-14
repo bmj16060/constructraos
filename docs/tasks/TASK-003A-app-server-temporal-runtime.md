@@ -1,6 +1,6 @@
 # TASK-003A: App Server Temporal Runtime
 
-Status: Planned
+Status: In Progress
 
 Date: 2026-03-14
 
@@ -61,3 +61,8 @@ This parent task is complete when:
 - the compose-served stack can run an app-server-backed task turn end to end
 - runtime restarts can be reconciled through the documented recovery model
 - task progress and approval waits are inspectable outside Temporal history
+
+## Progress
+
+- [TASK-003A-01: Runtime Coordination Persistence](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-003A/TASK-003A-01-runtime-coordination-persistence.md) is complete.
+- The current blocking execution path remains in place during the transition, including the `CODEX_RUNTIME_MODE=cli` fallback for the older direct approach.

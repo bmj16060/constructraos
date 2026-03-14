@@ -5,6 +5,11 @@ import jakarta.transaction.Transactional;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionActivityInput;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
+import net.mudpot.constructraos.persistence.runtimecoordination.RuntimeCoordinationOperations;
+import net.mudpot.constructraos.persistence.runtimecoordination.RuntimeExecutionContext;
+import net.mudpot.constructraos.persistence.runtimecoordination.RuntimeExecutionStartRequest;
+import net.mudpot.constructraos.persistence.runtimecoordination.RuntimeExecutionTerminalState;
+import net.mudpot.constructraos.persistence.runtimecoordination.RuntimeExecutionUpdate;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -26,6 +31,7 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
     private final AgentSessionRepository agentSessionRepository;
     private final TranscriptRecordRepository transcriptRecordRepository;
     private final TaskStepResultRepository taskStepResultRepository;
+    private final RuntimeCoordinationOperations runtimeCoordinationOperations;
 
     public TaskExecutionPersistenceService(
         final ProjectRepository projectRepository,
@@ -33,7 +39,8 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         final TaskStepRepository taskStepRepository,
         final AgentSessionRepository agentSessionRepository,
         final TranscriptRecordRepository transcriptRecordRepository,
-        final TaskStepResultRepository taskStepResultRepository
+        final TaskStepResultRepository taskStepResultRepository,
+        final RuntimeCoordinationOperations runtimeCoordinationOperations
     ) {
         this.projectRepository = projectRepository;
         this.taskRepository = taskRepository;
@@ -41,6 +48,7 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         this.agentSessionRepository = agentSessionRepository;
         this.transcriptRecordRepository = transcriptRecordRepository;
         this.taskStepResultRepository = taskStepResultRepository;
+        this.runtimeCoordinationOperations = runtimeCoordinationOperations;
     }
 
     @Override
@@ -60,7 +68,17 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         final UUID taskStepId = stableUuid("task-step", taskId.toString(), Integer.toString(FIRST_STEP_NUMBER));
         upsertTaskStep(taskId, taskStepId, agentSessionId, agentName);
 
-        return new TaskExecutionContext(projectId, taskId, taskStepId, agentSessionId);
+        final RuntimeExecutionContext runtimeExecution = runtimeCoordinationOperations.beginExecution(
+            new RuntimeExecutionStartRequest(
+                input.workflowId(),
+                taskId,
+                taskStepId,
+                "legacy-blocking",
+                "execution-started"
+            )
+        );
+
+        return new TaskExecutionContext(projectId, taskId, taskStepId, agentSessionId, runtimeExecution.runtimeExecutionId());
     }
 
     @Override
@@ -94,6 +112,21 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         task.setStatus(result.status());
         task.setCompletedAt(completedAt);
         taskRepository.update(task);
+
+        runtimeCoordinationOperations.recordTerminalState(
+            runtimeExecutionContext(context),
+            RuntimeExecutionTerminalState.COMPLETED,
+            new RuntimeExecutionUpdate(
+                outcome.sessionId(),
+                "execution-completed",
+                Map.of(
+                    "status", result.status(),
+                    "summary", result.summary(),
+                    "recommended_next_agent", result.recommendedNextAgent()
+                )
+            ),
+            ""
+        );
     }
 
     @Override
@@ -133,6 +166,21 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         task.setStatus(STATUS_FAILED);
         task.setCompletedAt(completedAt);
         taskRepository.update(task);
+
+        runtimeCoordinationOperations.recordTerminalState(
+            runtimeExecutionContext(context),
+            RuntimeExecutionTerminalState.FAILED,
+            new RuntimeExecutionUpdate(
+                sessionId,
+                "execution-failed",
+                Map.of("error", summary)
+            ),
+            summary
+        );
+    }
+
+    private static RuntimeExecutionContext runtimeExecutionContext(final TaskExecutionContext context) {
+        return new RuntimeExecutionContext(context.runtimeExecutionId());
     }
 
     private void upsertTask(final UUID projectId, final UUID taskId, final CodexExecutionActivityInput input, final String agentName) {

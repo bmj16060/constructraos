@@ -6,6 +6,7 @@ public record TaskExecutionContext(
     UUID projectId,
     UUID taskId,
     UUID taskStepId,
-    UUID agentSessionId
+    UUID agentSessionId,
+    UUID runtimeExecutionId
 ) {
 }

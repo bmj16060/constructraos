@@ -1,6 +1,6 @@
 # TASK-003A-01: Runtime Coordination Persistence
 
-Status: Planned
+Status: Complete
 
 Date: 2026-03-14
 
@@ -46,3 +46,10 @@ This task is complete when:
 - runtime coordination records can be created and updated durably
 - the runtime coordination boundary is separate from task projection persistence
 - recovery-critical state survives process and cache restarts
+
+## Result
+
+- Added Flyway-managed `runtime_executions` and `runtime_execution_checkpoints` tables for durable runtime coordination metadata.
+- Added a dedicated `libraries/persistence/runtimecoordination` boundary with shared entities, repositories, service operations, and read models.
+- Wired the existing blocking task persistence flow to create and complete runtime coordination records with `legacy-blocking` execution mode.
+- Preserved the current blocking execution path and the `CODEX_RUNTIME_MODE=cli` fallback while preparing for the app-server-backed runtime milestones.
