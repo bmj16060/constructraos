@@ -14,6 +14,7 @@ Last updated: 2026-03-14
 - TASK-001A is now implemented: Compose uses a dedicated `codex-runtime` Java service so orchestration no longer depends on the host operator's `~/.codex` directory.
 - TASK-002 is now implemented: Codex orchestration state persists through generic task execution records in PostgreSQL and is queryable outside Temporal.
 - The next platform extension is TASK-003 API and MCP task surfaces on top of the durable task state.
+- A near-follow-on slice is TASK-003A: a basic secondary task console page in the UI shell, linked from the current landing page rather than replacing it.
 
 ## In Progress
 
@@ -29,8 +30,8 @@ Last updated: 2026-03-14
 ## Next 3 Tasks
 
 1. Expose task start/status and MCP task tools on top of durable orchestration state.
-2. Add workspace leasing once task state and execution records are durable enough to coordinate write access safely.
-3. Add provider-neutral change and review records after workspace-backed execution is stable.
+2. Add a basic secondary task console page in the UI shell on top of the TASK-003 API.
+3. Add workspace leasing once task state and execution records are durable enough to coordinate write access safely.
 
 ## Risks
 

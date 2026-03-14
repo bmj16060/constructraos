@@ -19,6 +19,7 @@ Current planned sequence:
 - `TASK-001A` replace the host-dependent Codex CLI path with a containerized runtime boundary
 - `TASK-002` persist execution state in PostgreSQL
 - `TASK-003` expose task start/status through API and MCP
+- `TASK-003A` add a basic secondary task console page in the UI shell
 - `TASK-004` add workspace leasing for write-capable work
 - `TASK-005` add provider-neutral change and review records
 - `TASK-006` add planner artifact generation and approval flow
