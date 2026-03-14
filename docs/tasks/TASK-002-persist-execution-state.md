@@ -1,6 +1,6 @@
 # TASK-002: Persist Execution State
 
-Status: Planned
+Status: Completed
 
 Date: 2026-03-14
 
@@ -69,3 +69,10 @@ This task is complete when:
 - the structured result is durable outside Temporal
 - transcript metadata is persisted for the first slice
 - the persistence model does not force a one-step-equals-one-turn assumption
+
+## Outcome
+
+- shared persistence now lives behind generic task-oriented boundaries in `libraries/persistence/tasks`
+- orchestration activities persist project, task, task step, agent session, transcript, and task step result records
+- the persistence path uses retry-safe PostgreSQL upserts for workflow-owned execution records
+- live compose verification now covers both successful and failed `codex-execution` runs with database checks for terminal persisted state
