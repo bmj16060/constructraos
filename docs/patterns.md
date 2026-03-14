@@ -4,7 +4,7 @@
 
 - `api-service`
   - external HTTP boundary
-  - synchronous read models
+  - thin request/response boundary over synchronous read paths
   - workflow start/run adapters
   - policy checks before side effects
 - `orchestration`
@@ -38,12 +38,14 @@
 ## Persistence Pattern
 
 - Shared persistence entities and repositories live in `libraries/persistence`.
+- Query services and data access helpers should live in shared library boundaries such as `libraries/persistence`, not inside `api-service` controllers.
 - Schema changes land as Flyway migrations in that same library so both API and worker see the same migration set.
 - The first demo persists workflow history, not domain complexity.
 
 ## Policy Pattern
 
 - Services do not embed authorization logic directly in controllers when a reusable decision can live in OPA.
+- Deterministic business rules should live behind the policy boundary when they are reusable policy decisions rather than controller-local request handling.
 - API calls `policy-service`.
 - `policy-service` delegates to OPA.
 - Workflows can call `policy-service` through a dedicated Temporal activity when policy-evaluable business rules belong inside orchestration rather than only at API ingress.

@@ -38,6 +38,7 @@ ConstructraOS will implement Codex orchestration with the following boundaries:
 6. Detailed execution sequencing and milestone breakdown live in task documents rather than in the ADR.
 7. Planning artifacts such as design notes, ADR proposals, and task breakdowns are intended system outputs and may eventually be produced through a planner-oriented orchestration path.
 8. Deterministic business rules and authorization decisions should flow through the policy boundary, not be embedded ad hoc in Java orchestration code.
+9. `api-service` remains a thin boundary; business logic and data access should live in workflow, policy, and shared library boundaries rather than in API controllers.
 
 For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
 
@@ -238,6 +239,7 @@ Initial placement:
   - start-task and status/query endpoints
   - session bootstrap and policy checks before side effects
   - MCP tools that call those boundaries
+  - no long-term business or data access logic beyond boundary coordination
 - `libraries/commons`
   - shared workflow interfaces
   - activity interfaces
@@ -249,6 +251,7 @@ Initial placement:
   - activities that call the Codex execution adapter and persistence operations
 - `libraries/persistence`
   - entities, repositories, and Flyway migrations for orchestration records
+  - shared query services used by boundary layers instead of controller-local data access
 
 Preferred near-term direction:
 
