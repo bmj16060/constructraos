@@ -59,6 +59,24 @@ services:
       - "${OTEL_GRPC_HOST_PORT:-14317}:4317"
       - "${OTEL_HTTP_HOST_PORT:-14318}:4318"
 
+  codex-runtime:
+    build:
+      context: .
+      dockerfile: infra/codex-runtime/Dockerfile
+    environment:
+      PORT: 8091
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CODEX_RUNTIME_DEFAULT_WORKDIR: /workspace
+      CODEX_RUNTIME_CONFIG_SOURCE: /config
+    volumes:
+      - .:/workspace
+      - ./.codex-runtime:/config:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8091/healthz >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   opa:
     image: openpolicyagent/opa:1.3.0-static
     command: ["run", "--server", "--addr=0.0.0.0:8181", "--set=decision_logs.console=true", "/policies"]
@@ -122,6 +140,8 @@ services:
         condition: service_started
       valkey:
         condition: service_started
+      codex-runtime:
+        condition: service_started
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -148,6 +168,9 @@ services:
       POLICY_SERVICE_URL: http://policy-service:8082
       GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
       GRAPH_URI: ${GRAPH_URI:-}
+      CODEX_RUNTIME_MODE: http
+      CODEX_RUNTIME_BASE_URL: http://codex-runtime:8091
+      CODEX_DEFAULT_WORKING_DIRECTORY: /workspace
     ports:
       - "${ORCHESTRATION_HOST_PORT:-18081}:8081"
 

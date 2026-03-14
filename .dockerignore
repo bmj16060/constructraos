@@ -2,6 +2,7 @@
 .gradle
 .idea
 .env
+.codex-runtime
 .DS_Store
 
 build

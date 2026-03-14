@@ -9,3 +9,4 @@ services/ui-service/frontend/coverage/
 services/ui-service/frontend/playwright-report/
 services/ui-service/frontend/test-results/
 .env
+.codex-runtime/

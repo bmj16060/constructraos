@@ -11,22 +11,23 @@ Last updated: 2026-03-14
 - The typed Temporal client boundary now lives in `libraries/clients`.
 - Graph support remains an open architectural seam rather than an active part of the current baseline.
 - TASK-001 is now implemented: a Temporal workflow can invoke Codex through a dedicated activity and return the minimal structured result contract without persistence.
-- The next platform extension is a containerized Codex runtime boundary so the execution path no longer depends on host-local operator credentials.
+- TASK-001A is now implemented: Compose uses a dedicated `codex-runtime` wrapper service so orchestration no longer depends on the host operator's `~/.codex` directory.
+- The next platform extension is TASK-002 persistence so Codex orchestration state becomes queryable outside Temporal.
 
 ## In Progress
 
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the remaining backend slices.
-- TASK-001 added a minimal API trigger surface plus reusable Codex CLI adapter code under `libraries/commons` for the local `codex exec --json --output-schema` path.
-- TASK-001A is now the deployability follow-on for replacing the current host-dependent execution fallback with the intended sidecar or wrapper boundary.
+- TASK-001A replaced the worker-local CLI path with an internal HTTP runtime adapter plus a `codex-runtime` wrapper container that owns `codex exec`.
+- Codex auth/config for Compose now comes from explicit environment or repo-local `.codex-runtime/`, not implicit host-home state.
 - The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks
 
-1. Replace the host-dependent Codex CLI path with a containerized runtime boundary.
-2. Add PostgreSQL schema and persistence boundaries now that the invocation seam is proven.
-3. Expose task start/status and MCP task tools on top of durable orchestration state.
+1. Add PostgreSQL schema and persistence boundaries now that the invocation and runtime seams are proven.
+2. Expose task start/status and MCP task tools on top of durable orchestration state.
+3. Add workspace leasing once task state and execution records are durable enough to coordinate write access safely.
 
 ## Risks
 
@@ -35,4 +36,4 @@ Last updated: 2026-03-14
 - Anonymous session signing currently defaults to a local development secret unless `ANON_SESSION_SIGNING_SECRET` is overridden for deployed environments.
 - The graph database boundary is intentional but not implemented yet; a later slice still needs a concrete technology choice and usage pattern.
 - Transcript payload size may eventually outgrow PostgreSQL-only storage, even though storing transcript events in `jsonb` is acceptable for the first slice.
-- The first Codex execution slice depends on a locally available Codex CLI plus valid `~/.codex/auth.json` and `~/.codex/config.toml`; TASK-001A exists to remove that host dependency from the supported runtime path.
+- The supported Codex runtime path now depends on explicit container credentials through `OPENAI_API_KEY` or repo-local `.codex-runtime/auth.json`; an unconfigured runtime still boots but Codex workflow execution will fail until that boundary is configured.

@@ -28,9 +28,12 @@ temporal:
   codex-task-queue: codex-execution-task-queue
 
 codex:
+  runtime-mode: ${CODEX_RUNTIME_MODE:http}
+  runtime-base-url: ${CODEX_RUNTIME_BASE_URL:`http://127.0.0.1:8091`}
   command: ${CODEX_COMMAND:codex}
   home-path: ${CODEX_HOME_PATH:}
   timeout-seconds: ${CODEX_TIMEOUT_SECONDS:180}
+  default-working-directory: ${CODEX_DEFAULT_WORKING_DIRECTORY:}
 
 ai:
   default-provider: ${AI_DEFAULT_PROVIDER:openai-compatible}

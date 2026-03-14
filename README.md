@@ -65,7 +65,14 @@ ConstructraOS/
 ## Quick Start
 
 1. Copy `.env.example` to `.env` and set the LLM values that match your local setup.
-2. Start the local stack:
+2. Configure the containerized Codex runtime using one of these supported paths:
+
+- set `OPENAI_API_KEY` in `.env`
+- place `auth.json` and optional `config.toml` under repo-local `.codex-runtime/`
+
+This Compose path no longer reads the host user's `~/.codex` directory.
+
+3. Start the local stack:
 
 ```bash
 docker compose up --build
@@ -73,9 +80,9 @@ docker compose up --build
 
 This path now uses a root multi-stage Docker build, so Compose compiles the full Gradle project and the UI assets before assembling the runtime images.
 
-The default local `ui-service` path also mounts `services/ui-service/build/frontend-static` as an overlay when that directory contains a host build, so frontend watch output can take over without replacing the clean-checkout fallback baked into the image.
+The default local `ui-service` path also mounts `services/ui-service/build/frontend-static` as an overlay when that directory contains a host build, so frontend watch output can take over without replacing the clean-checkout fallback baked into the image. Compose also runs a `codex-runtime` wrapper container that owns `codex exec` and exposes the runtime boundary to orchestration over the internal network.
 
-3. Open:
+4. Open:
 
 - UI shell: [http://localhost:18090](http://localhost:18090)
 - API health: [http://localhost:18080/api/healthz](http://localhost:18080/api/healthz)
@@ -83,6 +90,8 @@ The default local `ui-service` path also mounts `services/ui-service/build/front
 - Jaeger: [http://localhost:18686](http://localhost:18686)
 
 The compose host ports are configurable through `.env` if those defaults still collide with other local services.
+
+For the current demo Codex workflow, a blank `workingDirectory` resolves to `/workspace` inside the wrapper container, which is the mounted repo root during Compose runs.
 
 ## Local Iteration
 
@@ -93,6 +102,8 @@ The compose host ports are configurable through `.env` if those defaults still c
 ./gradlew :services:orchestration:run
 ./gradlew :services:policy-service:run
 ```
+
+If you run `orchestration` outside Compose, either start `codex-runtime` through Compose as well or switch the worker back to direct CLI mode with `CODEX_RUNTIME_MODE=cli`.
 
 - Frontend dev server:
 
@@ -107,7 +118,7 @@ The Vite dev server proxies `/api` to `http://localhost:8080`.
 - Frontend validation through the compose-managed `nginx` container:
 
 ```bash
-docker compose up --build ui-service api-service orchestration policy-service
+docker compose up --build ui-service api-service orchestration policy-service codex-runtime
 ```
 
 In this mode, `ui-service` serves baked image assets until a host frontend build is present, then automatically switches to the mounted overlay for fast browser refreshes.
@@ -116,7 +127,7 @@ In this mode, `ui-service` serves baked image assets until a host frontend build
 
 ```bash
 ./gradlew :services:ui-service:buildFrontendAssets
-docker compose up --build ui-service api-service orchestration policy-service
+docker compose up --build ui-service api-service orchestration policy-service codex-runtime
 
 cd services/ui-service/frontend
 npm install

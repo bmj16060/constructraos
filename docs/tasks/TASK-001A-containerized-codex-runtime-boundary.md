@@ -1,6 +1,6 @@
 # TASK-001A: Containerized Codex Runtime Boundary
 
-Status: Planned
+Status: Complete
 
 Date: 2026-03-14
 
@@ -14,6 +14,12 @@ Related:
 Replace the current host-dependent Codex CLI execution path with a runtime boundary that works in the intended containerized deployment model.
 
 The preferred target is the sidecar-style boundary already described in ADR-001, but a small wrapper service is also acceptable if it preserves the same execution contract.
+
+Chosen implementation:
+
+- a small internal `codex-runtime` wrapper service with an HTTP API
+- orchestration now uses an HTTP-backed execution adapter by default
+- Compose supplies Codex auth/config explicitly through `OPENAI_API_KEY` or repo-local `.codex-runtime/`
 
 ## Why This Next
 
@@ -59,3 +65,11 @@ This task is complete when:
 - host-local `~/.codex` state is no longer required for normal Compose verification
 - the workflow still receives the same structured result contract
 - local deployment documentation matches the supported runtime model
+
+## Result
+
+- Added `infra/codex-runtime/` with a small wrapper container that exposes `GET /healthz` and `POST /executions`.
+- Repointed orchestration to an HTTP runtime adapter while preserving the workflow/activity request and result contract.
+- Kept a `CODEX_RUNTIME_MODE=cli` fallback for direct worker runs outside Compose.
+- Mounted the repo to `/workspace` for the wrapper container and made blank demo `workingDirectory` values resolve there.
+- Updated Compose and README so the supported auth/config path is explicit and no longer depends on implicit host `~/.codex` state.

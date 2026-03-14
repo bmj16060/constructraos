@@ -29,6 +29,8 @@
 7. Activity persists durable results.
 8. API and UI read the resulting state back through normal service boundaries.
 
+- External clients called inside Temporal activities should avoid their own retry loops when Temporal activity retry policy already owns retry behavior.
+
 ## Caching Pattern
 
 - LLM caching lives inside the shared `LlmActivitiesImpl` path.

@@ -1,8 +1,7 @@
 package net.mudpot.constructraos.commons.orchestration.codex.execution;
 
-public record CodexCliSettings(
-    String command,
-    String homePath,
+public record CodexRuntimeHttpSettings(
+    String baseUrl,
     long timeoutSeconds,
     String defaultWorkingDirectory
 ) {
