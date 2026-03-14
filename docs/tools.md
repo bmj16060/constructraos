@@ -19,7 +19,8 @@ Use tools to tighten execution, not to replace the repo docs. For this project, 
 
 ## ConstructraOS MCP Server
 
-- A local Codex config may register the repo's MCP endpoint as `constructraos` at `http://localhost:18080/mcp` for convenience when the compose stack is running.
+- A local Codex config may register the repo's MCP endpoint as `constructraos` at `http://localhost:18090/mcp` for convenience when the compose stack is running.
+- That path intentionally goes through the `ui-service` reverse proxy rather than depending on the API container port directly.
 - Treat that registration as optional convenience, not as a baseline development dependency.
 - The repo is not yet at the point where normal development should rely on its own MCP surface.
 - For now, prefer direct code reads, Gradle tests, compose verification, and direct HTTP checks over depending on the repo MCP tools for implementation work.
