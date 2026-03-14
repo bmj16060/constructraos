@@ -15,6 +15,7 @@ Prove the narrowest closed loop for the orchestration system:
 `Temporal workflow -> Codex execution activity -> simple structured response`
 
 This milestone intentionally stops before database-backed orchestration state becomes required.
+This task is specifically about proving one atomic Codex interaction, not about proving every higher-level workflow step can be completed in a single turn.
 
 ## Why This First
 
@@ -27,6 +28,7 @@ If that seam is not solid, persistence and richer domain modeling are premature.
 - one Temporal workflow that invokes one Codex execution activity
 - one minimal execution adapter contract
 - one minimal structured result schema
+- one atomic Codex interaction for the first execution path
 - verification through Temporal workflow result, activity output, and logs
 
 ## Out of Scope
@@ -56,6 +58,8 @@ Later milestones can add:
 - session continuity metadata
 - transcript references
 - richer routing fields
+
+Later milestones may also allow a single workflow-managed step to span multiple Codex turns. That is intentionally out of scope for this first proof point.
 
 ## Work Sequence
 
