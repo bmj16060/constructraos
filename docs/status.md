@@ -38,9 +38,9 @@ Last updated: 2026-03-14
 
 ## Next 3 Tasks
 
-1. Add an app-server-backed session runtime in `codex-runtime`.
-2. Add Temporal async execution, signaling, health checks, and reconciliation for Codex turns.
-3. Expose richer progress and approval state through the existing task projection surfaces.
+1. Complete `TASK-003A-02`: add an app-server-backed session runtime in `codex-runtime`.
+2. Complete `TASK-003A-03`: add Temporal async execution, signaling, health checks, and reconciliation for Codex turns.
+3. Complete `TASK-003A-04`: expose richer progress and approval state through the existing task projection surfaces.
 
 ## Risks
 
