@@ -16,6 +16,7 @@ The design emphasizes:
 - Human-in-the-loop consultation
 - Project-aware orchestration based on the user's working directory
 - Planning artifacts as first-class system outputs
+- Deterministic rule evaluation through policy boundaries rather than ad hoc Java logic
 
 The system uses a **coordinator + sidecar pattern** where Codex agents run as isolated worker turns via:
 
@@ -248,6 +249,32 @@ Example output:
       "issues": [],
       "recommended_next_agent": "reviewer"
     }
+
+---
+
+# Policy Boundary
+
+Deterministic business rules should not be delegated to Codex reasoning or scattered through orchestration code.
+
+Expected rule split:
+
+- Codex agents
+  - planning
+  - implementation reasoning
+  - review reasoning
+  - summarization and proposal generation
+- Policy boundary
+  - authorization decisions
+  - deterministic business rules
+  - promotion and gating decisions that can be expressed as policy
+
+In ConstructraOS, those deterministic rules should be evaluated through the existing policy boundary rather than codified ad hoc in Java services.
+
+That means:
+
+- reusable deterministic decisions belong in `policy-service` and OPA
+- workflows should call policy evaluation activities when a rule affects orchestration
+- Java should coordinate policy evaluation and apply decisions, not become the long-term home of business policy
 
 ---
 

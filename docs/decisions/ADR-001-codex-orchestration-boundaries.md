@@ -35,6 +35,7 @@ ConstructraOS will implement Codex orchestration with the following boundaries:
 5. The active project is resolved from the interactive caller's working directory and mapped to a durable project record.
 6. Detailed execution sequencing and milestone breakdown live in task documents rather than in the ADR.
 7. Planning artifacts such as design notes, ADR proposals, and task breakdowns are intended system outputs and may eventually be produced through a planner-oriented orchestration path.
+8. Deterministic business rules and authorization decisions should flow through the policy boundary, not be embedded ad hoc in Java orchestration code.
 
 For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
 
@@ -76,6 +77,32 @@ Activity responsibilities:
 This keeps non-deterministic Codex execution out of workflow code while avoiding an early commitment to a specific hosting model.
 
 In this model, a Codex interaction is an atomic worker turn, but a higher-level workflow step may still span multiple turns when follow-up execution, consultation, or human input is required before that step is complete.
+
+When workflow progression depends on a deterministic rule, that rule should be evaluated through the existing policy boundary instead of being reimplemented as opaque Java branching where a reusable policy can express it.
+
+## Policy Boundary
+
+ConstructraOS already has a policy-service and OPA seam. Codex orchestration should use that seam deliberately.
+
+Expected split:
+
+- Codex execution
+  - non-deterministic reasoning
+  - implementation proposals
+  - review analysis
+  - planning artifact generation
+- Policy evaluation
+  - authorization
+  - deterministic business rules
+  - reusable gating criteria
+  - promotion rules that are policy-shaped rather than procedural
+
+Consequences for implementation:
+
+- workflows may call policy evaluation through dedicated activities
+- reusable business rules should be expressed in policy where practical
+- Java services should orchestrate policy requests and apply results, not become the canonical home of deterministic rule logic
+- Codex output may inform a decision path, but Codex should not be treated as the authority for deterministic business policy
 
 ## Planning Artifact Model
 
@@ -231,6 +258,7 @@ Positive:
 - keeps GitHub integration optional at the domain layer even if GitHub is the first provider used
 - preserves a clean side-effect boundary around Codex execution without overcommitting on transport or hosting
 - recognizes planning and work decomposition as a first-class system capability rather than an external manual process
+- preserves the existing ConstructraOS policy model by keeping deterministic rules behind OPA and policy-service
 - delivers a narrow first slice without blocking on every future orchestration feature
 
 Tradeoffs:
@@ -241,3 +269,4 @@ Tradeoffs:
 - review abstractions add domain complexity before non-GitHub providers exist, but they avoid locking the orchestration model to one vendor
 - the execution adapter contract needs to be designed carefully enough that both a sidecar and a wrapper-service implementation remain viable
 - planner-generated docs will need review and acceptance rules so the system does not silently redefine its own roadmap
+- some orchestration decisions will require deliberate judgment about whether they are durable policy candidates or merely local control flow
