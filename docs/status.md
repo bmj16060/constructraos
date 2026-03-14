@@ -16,7 +16,7 @@ Last updated: 2026-03-14
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the next backend slice.
-- The near-term implementation ladder is now captured in `TASK-001` through `TASK-005`.
+- The implementation ladder is now captured in `TASK-001` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks
 
