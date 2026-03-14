@@ -21,17 +21,32 @@ The repo already has the right baseline components for this work:
 
 The implementation needs to preserve Temporal determinism, keep Codex CLI execution behind a side-effect boundary, and make projects, tasks, sessions, and transcripts queryable through the normal persistence model.
 
+The exact runtime boundary for Codex execution is still intentionally open. The current preference is to host the Codex CLI behind a sidecar-style boundary, but that boundary may end up being implemented as a small wrapper service with an API rather than a direct process invocation inside the worker.
+
 ## Decision
 
 ConstructraOS will implement Codex orchestration with the following boundaries:
 
 1. Temporal workflows own the coordinator logic.
-2. Temporal activities own side effects, including Codex CLI execution via the sidecar.
+2. Temporal activities own side effects, including calls to a Codex execution adapter.
 3. PostgreSQL is the system of record for projects, tasks, agent sessions, transcript records, and human questions.
 4. The persistence model uses normalized relational tables for workflow-driving entities and `jsonb` columns for flexible payloads and transcript detail.
 5. The active project is resolved from the interactive caller's working directory and mapped to a durable project record.
 6. The first implementation slice is a single-agent path:
    `start_task -> run one Codex agent turn -> persist result and transcript -> route to next task state`
+
+For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
+
+- structured agent output
+- session identity or continuity metadata
+- transcript payload or transcript reference
+- execution status and timing metadata
+
+The adapter may be backed by:
+
+- a sidecar-local process wrapper around the Codex CLI
+- a dedicated Codex wrapper service with an API
+- another equivalent boundary that preserves the same contract
 
 ## Workflow and Activity Split
 
@@ -51,12 +66,12 @@ Activity responsibilities:
 
 - resolve or create the project record for a working directory
 - load task and session context from persistence
-- invoke `codex exec` or `codex exec resume`
+- call the Codex execution adapter
 - capture transcript output and structured result
 - persist transcript records, session IDs, and task-step results
 - answer query-oriented reads needed by API or MCP tools
 
-This keeps non-deterministic Codex process execution out of workflow code.
+This keeps non-deterministic Codex execution out of workflow code while avoiding an early commitment to a specific hosting model.
 
 ## Persistence Model
 
@@ -122,7 +137,7 @@ Included:
 
 - start a project-scoped task
 - run one planner or implementer turn through a Temporal workflow
-- execute Codex through an activity-backed sidecar
+- execute one agent turn through the Codex execution adapter
 - persist the structured result
 - persist transcript metadata and transcript payload
 - persist or update the agent session ID
@@ -148,11 +163,15 @@ Initial placement:
   - MCP tools that call those boundaries
 - `services/orchestration`
   - Temporal workflow implementations
-  - activities that execute the Codex sidecar and persistence operations
+  - activities that call the Codex execution adapter and persistence operations
 - `libraries/persistence`
   - entities, repositories, and Flyway migrations for orchestration records
 
-If Codex execution later needs separate operational isolation, the activity worker can be split into a dedicated service without changing the workflow contract.
+Preferred near-term direction:
+
+- define a stable adapter contract first
+- keep the first implementation compatible with a sidecar-hosted Codex CLI
+- allow that adapter to move behind a wrapper service API later without changing workflow semantics
 
 ## Consequences
 
@@ -161,13 +180,14 @@ Positive:
 - aligns the implementation with existing Temporal and persistence seams
 - keeps workflow logic deterministic
 - makes projects, tasks, sessions, and transcripts queryable through PostgreSQL
-- preserves a clean side-effect boundary around Codex execution
+- preserves a clean side-effect boundary around Codex execution without overcommitting on transport or hosting
 - delivers a narrow first slice without blocking on every future orchestration feature
 
 Tradeoffs:
 
 - transcript payloads in PostgreSQL may need a later storage split if volume grows
 - persistence design must be deliberate up front because project scoping and session continuity are part of the platform contract
+- the execution adapter contract needs to be designed carefully enough that both a sidecar and a wrapper-service implementation remain viable
 - the first slice will intentionally leave consultation and resume loops incomplete until the single-agent path is stable
 
 ## Implementation Order
@@ -175,7 +195,7 @@ Tradeoffs:
 1. Add the orchestration persistence schema and repositories in `libraries/persistence`.
 2. Define workflow input/output contracts and structured result models shared between API and orchestration.
 3. Implement the first coordinator workflow for a single-agent task.
-4. Implement Codex sidecar execution as an orchestration activity.
+4. Define and implement the first Codex execution adapter behind an orchestration activity.
 5. Expose task start and task status through API and MCP boundaries.
 6. Verify the end-to-end path against a real local Codex invocation.
 
@@ -184,6 +204,6 @@ Tradeoffs:
 The first implementation pass is complete when:
 
 - a task can be started for a project resolved from the working directory
-- the workflow runs one agent turn through the Codex sidecar activity
+- the workflow runs one agent turn through the Codex execution adapter
 - the database contains the project, task, task step, session, transcript, and structured result records
 - the API or MCP layer can read back task status without inspecting Temporal history directly
