@@ -8,6 +8,14 @@ java {
     }
 }
 
+sourceSets {
+    main {
+        resources {
+            srcDir("${rootProject.projectDir}/shared/prompts")
+        }
+    }
+}
+
 dependencies {
     implementation platform("io.micronaut.platform:micronaut-platform:${micronautVersion}")
     api "io.temporal:temporal-sdk:${project.findProperty('temporalSdkVersion')}"

@@ -17,8 +17,11 @@ import io.temporal.worker.WorkerFactoryOptions;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import net.mudpot.constructraos.commons.orchestration.codex.workflows.CodexExecutionWorkflow;
 import net.mudpot.constructraos.commons.orchestration.system.workflows.HelloWorldWorkflow;
 import net.mudpot.constructraos.orchestration.config.TemporalWorkerConfig;
+import net.mudpot.constructraos.orchestration.system.codex.activities.CodexExecutionActivitiesImpl;
+import net.mudpot.constructraos.orchestration.system.codex.workflows.CodexExecutionWorkflowImpl;
 import net.mudpot.constructraos.orchestration.system.activities.HelloActivitiesImpl;
 import net.mudpot.constructraos.orchestration.system.activities.LlmActivitiesImpl;
 import net.mudpot.constructraos.orchestration.system.activities.PromptActivitiesImpl;
@@ -38,6 +41,7 @@ public class TemporalWorkerRuntime {
     private final HelloActivitiesImpl helloActivities;
     private final PromptActivitiesImpl promptActivities;
     private final LlmActivitiesImpl llmActivities;
+    private final CodexExecutionActivitiesImpl codexExecutionActivities;
     private final PolicyEvaluationActivitiesImpl policyEvaluationActivities;
 
     @Inject
@@ -47,6 +51,7 @@ public class TemporalWorkerRuntime {
         final HelloActivitiesImpl helloActivities,
         final PromptActivitiesImpl promptActivities,
         final LlmActivitiesImpl llmActivities,
+        final CodexExecutionActivitiesImpl codexExecutionActivities,
         final PolicyEvaluationActivitiesImpl policyEvaluationActivities,
         final OpenTracingOptions openTracingOptions
     ) {
@@ -55,6 +60,7 @@ public class TemporalWorkerRuntime {
         this.helloActivities = helloActivities;
         this.promptActivities = promptActivities;
         this.llmActivities = llmActivities;
+        this.codexExecutionActivities = codexExecutionActivities;
         this.policyEvaluationActivities = policyEvaluationActivities;
         final WorkflowServiceStubs service = WorkflowServiceStubs.newInstance(
             WorkflowServiceStubsOptions.newBuilder().setTarget(config.temporalAddress()).build()
@@ -74,6 +80,7 @@ public class TemporalWorkerRuntime {
                 .build()
         );
         registerHelloWorker();
+        registerCodexWorker();
         this.workerFactory.start();
     }
 
@@ -83,11 +90,18 @@ public class TemporalWorkerRuntime {
         helloWorker.registerActivitiesImplementations(helloActivities, promptActivities, llmActivities, policyEvaluationActivities);
     }
 
+    private void registerCodexWorker() {
+        final Worker codexWorker = workerFactory.newWorker(config.codexTaskQueue());
+        codexWorker.registerWorkflowImplementationFactory(CodexExecutionWorkflow.class, () -> beanContext.createBean(CodexExecutionWorkflowImpl.class));
+        codexWorker.registerActivitiesImplementations(codexExecutionActivities, policyEvaluationActivities);
+    }
+
     @EventListener
     void startup(final StartupEvent event) {
         ready.set(true);
         System.out.println("Temporal worker runtime started. namespace=" + config.temporalNamespace()
             + " hello_queue=" + config.helloTaskQueue()
+            + " codex_queue=" + config.codexTaskQueue()
             + " address=" + config.temporalAddress()
             + " server_port=8081");
     }

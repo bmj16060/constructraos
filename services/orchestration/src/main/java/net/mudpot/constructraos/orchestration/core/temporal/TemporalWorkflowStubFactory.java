@@ -7,6 +7,7 @@ import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 import jakarta.inject.Named;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.LlmActivities;
+import net.mudpot.constructraos.commons.orchestration.codex.activities.CodexExecutionActivities;
 import net.mudpot.constructraos.commons.orchestration.policy.activities.PolicyEvaluationActivities;
 import net.mudpot.constructraos.commons.orchestration.ai.activities.PromptActivities;
 import net.mudpot.constructraos.commons.orchestration.system.activities.HelloActivities;
@@ -23,6 +24,25 @@ public class TemporalWorkflowStubFactory {
             ActivityOptions.newBuilder()
                 .setStartToCloseTimeout(Duration.ofSeconds(20))
                 .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
+                .build()
+        );
+    }
+
+    @Prototype
+    @Named("codexExecutionActivitiesStub")
+    CodexExecutionActivities codexExecutionActivitiesStub() {
+        return Workflow.newActivityStub(
+            CodexExecutionActivities.class,
+            ActivityOptions.newBuilder()
+                .setStartToCloseTimeout(Duration.ofMinutes(5))
+                .setRetryOptions(
+                    RetryOptions.newBuilder()
+                        .setInitialInterval(Duration.ofSeconds(2))
+                        .setBackoffCoefficient(2.0)
+                        .setMaximumInterval(Duration.ofSeconds(20))
+                        .setMaximumAttempts(2)
+                        .build()
+                )
                 .build()
         );
     }

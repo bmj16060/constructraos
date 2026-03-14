@@ -25,6 +25,12 @@ temporal:
   address: ${TEMPORAL_ADDRESS:127.0.0.1:7233}
   namespace: ${TEMPORAL_NAMESPACE:default}
   task-queue: hello-world-task-queue
+  codex-task-queue: codex-execution-task-queue
+
+codex:
+  command: ${CODEX_COMMAND:codex}
+  home-path: ${CODEX_HOME_PATH:}
+  timeout-seconds: ${CODEX_TIMEOUT_SECONDS:180}
 
 ai:
   default-provider: ${AI_DEFAULT_PROVIDER:openai-compatible}

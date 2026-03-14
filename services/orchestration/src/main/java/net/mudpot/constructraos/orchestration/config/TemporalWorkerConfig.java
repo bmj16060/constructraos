@@ -15,6 +15,9 @@ public class TemporalWorkerConfig {
     @Value("${temporal.task-queue}")
     private String helloTaskQueue;
 
+    @Value("${temporal.codex-task-queue}")
+    private String codexTaskQueue;
+
     @Value("${ai.openai.base-url}")
     private String openAiBaseUrl;
 
@@ -51,6 +54,7 @@ public class TemporalWorkerConfig {
     public String temporalAddress() { return temporalAddress; }
     public String temporalNamespace() { return temporalNamespace; }
     public String helloTaskQueue() { return helloTaskQueue; }
+    public String codexTaskQueue() { return codexTaskQueue; }
     public String openAiBaseUrl() { return openAiBaseUrl; }
     public String openAiApiKey() { return openAiApiKey; }
     public String openAiDefaultModel() { return openAiDefaultModel; }

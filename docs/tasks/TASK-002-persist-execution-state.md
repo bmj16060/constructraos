@@ -8,6 +8,7 @@ Related:
 
 - [ADR-001: Codex Orchestration Boundaries](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-001-codex-orchestration-boundaries.md)
 - [TASK-001: Codex Invocation Vertical Slice](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-001-codex-invocation-vertical-slice.md)
+- [TASK-001A: Containerized Codex Runtime Boundary](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-001A-containerized-codex-runtime-boundary.md)
 
 ## Goal
 
@@ -15,7 +16,7 @@ Persist the result of the Codex invocation flow so orchestration state is querya
 
 ## Why This Next
 
-Once the workflow can invoke Codex and receive structured output, the next limitation is that Temporal is the only verification surface.
+Once the invocation seam and deployable Codex runtime boundary are both in place, the next limitation is that Temporal is still the only durable verification surface.
 
 This milestone makes execution state durable and queryable through PostgreSQL.
 
