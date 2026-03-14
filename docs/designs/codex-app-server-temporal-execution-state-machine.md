@@ -142,6 +142,35 @@ This data exists for crash recovery and liveness, not as the operator-facing tas
 
 The important rule is that both kinds of data may live in the same PostgreSQL server, but they must not share ownership semantics.
 
+### Valkey Role
+
+Valkey can still help, but it should be treated as an optimization layer rather than the recovery contract.
+
+Good Valkey candidates:
+
+- short-lived heartbeat freshness markers
+- expiring lease hints
+- hot indexes of currently running executions
+- lightweight fan-out or notification coordination
+- debounce state for health-check activity polling
+
+Data that must survive runtime restarts or cache loss should stay in PostgreSQL:
+
+- durable execution ownership
+- provider thread and turn identity
+- last durable checkpoint
+- approval wait state
+- reconciliation inputs
+- terminal completion state when known
+
+Recommended split:
+
+- PostgreSQL is the durable source of truth for both task projection data and runtime coordination data.
+- Valkey is an optional acceleration layer used to make liveness checks and active-execution lookups cheaper.
+- Temporal remains the authority for orchestration decisions such as retry, timeout, escalation, and reconciliation.
+
+This matches the existing repo pattern where Valkey is helpful but optional rather than a required durability layer.
+
 ## Proposed Runtime Coordination Model
 
 Add a dedicated shared persistence boundary for runtime coordination, for example:
@@ -261,7 +290,7 @@ Example loop:
 1. start or resume external turn
 2. wait for event or timer
 3. if timer fires, run `CheckExecutionHealthActivity`
-4. if health is good, keep waiting
+4. health check may read Valkey first for fast liveness and then fall back to PostgreSQL for durable recovery state
 5. if state is stale or unknown, run `ReconcileExecutionActivity`
 6. if reconciliation finds a terminal provider result, complete idempotently
 7. if reconciliation cannot recover safely, fail or retry according to workflow policy
