@@ -183,6 +183,7 @@ Example agents:
 - bugfixer
 - docs
 - architect
+- policy-author
 
 Each agent:
 
@@ -275,6 +276,24 @@ That means:
 - reusable deterministic decisions belong in `policy-service` and OPA
 - workflows should call policy evaluation activities when a rule affects orchestration
 - Java should coordinate policy evaluation and apply decisions, not become the long-term home of business policy
+
+Future capability:
+
+The system may eventually include a policy-oriented agent that helps other agents by proposing deterministic rules when repeated operator decisions or recurring review findings indicate a reusable policy should exist.
+
+That agent should:
+
+- identify candidate rules from repeated workflow behavior
+- draft or revise policy definitions
+- explain the expected decision impact
+- generate policy examples or tests
+
+That agent should not directly become the authority for policy. The control model remains:
+
+- agent proposes policy
+- policy is reviewed and approved
+- OPA executes the resulting deterministic rule
+- other agents consume the rule through the existing policy boundary
 
 ---
 
