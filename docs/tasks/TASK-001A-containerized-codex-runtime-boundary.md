@@ -68,7 +68,7 @@ This task is complete when:
 
 ## Result
 
-- Added `infra/codex-runtime/` with a small wrapper container that exposes `GET /healthz` and `POST /executions`.
+- Added `services/codex-runtime/` as a Java service that exposes `GET /healthz` and `POST /executions`.
 - Repointed orchestration to an HTTP runtime adapter while preserving the workflow/activity request and result contract.
 - Kept a `CODEX_RUNTIME_MODE=cli` fallback for direct worker runs outside Compose.
 - Mounted the repo to `/workspace` for the wrapper container and made blank demo `workingDirectory` values resolve there.

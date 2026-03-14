@@ -19,7 +19,7 @@ Last updated: 2026-03-14
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the remaining backend slices.
-- TASK-001A replaced the worker-local CLI path with an internal HTTP runtime adapter plus a `codex-runtime` wrapper container that owns `codex exec`.
+- TASK-001A replaced the worker-local CLI path with an internal HTTP runtime adapter plus a Java `codex-runtime` service that owns `codex exec`.
 - Codex auth for Compose now comes from explicit `.env` configuration or repo-local `.codex-runtime/`, not implicit host-home state.
 - The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 

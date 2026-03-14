@@ -1,0 +1,22 @@
+micronaut:
+  application:
+    name: codex-runtime
+  server:
+    port: 8091
+
+codex:
+  command: ${CODEX_COMMAND:codex}
+  home-path: ${CODEX_HOME:/codex-home}
+  config-source-path: ${CODEX_RUNTIME_CONFIG_SOURCE:/config}
+  default-working-directory: ${CODEX_RUNTIME_DEFAULT_WORKDIR:/workspace}
+
+otel:
+  traces:
+    exporter: ${OTEL_TRACES_EXPORTER:none}
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:`http://localhost:4318`}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+  service:
+    name: ${OTEL_SERVICE_NAME:codex-runtime}
+  propagators: tracecontext,baggage

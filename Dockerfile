@@ -13,6 +13,7 @@ COPY libraries/commons/build.gradle ./libraries/commons/build.gradle
 COPY libraries/clients/build.gradle ./libraries/clients/build.gradle
 COPY libraries/persistence/build.gradle ./libraries/persistence/build.gradle
 COPY services/api-service/build.gradle ./services/api-service/build.gradle
+COPY services/codex-runtime/build.gradle ./services/codex-runtime/build.gradle
 COPY services/orchestration/build.gradle ./services/orchestration/build.gradle
 COPY services/policy-service/build.gradle ./services/policy-service/build.gradle
 COPY services/ui-service/build.gradle ./services/ui-service/build.gradle

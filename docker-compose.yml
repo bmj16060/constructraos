@@ -62,7 +62,7 @@ services:
   codex-runtime:
     build:
       context: .
-      dockerfile: infra/codex-runtime/Dockerfile
+      dockerfile: services/codex-runtime/Dockerfile
     environment:
       PORT: 8091
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

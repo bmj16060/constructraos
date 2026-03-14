@@ -16,6 +16,7 @@ include(
     ':libraries:persistence',
     ':libraries:clients',
     ':services:api-service',
+    ':services:codex-runtime',
     ':services:orchestration',
     ':services:policy-service',
     ':services:ui-service'

@@ -55,6 +55,7 @@ ConstructraOS/
     persistence/
   services/
     api-service/
+    codex-runtime/
     orchestration/
     policy-service/
     ui-service/
@@ -86,7 +87,7 @@ docker compose up --build
 
 This path now uses a root multi-stage Docker build, so Compose compiles the full Gradle project and the UI assets before assembling the runtime images.
 
-The default local `ui-service` path also mounts `services/ui-service/build/frontend-static` as an overlay when that directory contains a host build, so frontend watch output can take over without replacing the clean-checkout fallback baked into the image. Compose also runs a `codex-runtime` wrapper container that owns `codex exec` and exposes the runtime boundary to orchestration over the internal network.
+The default local `ui-service` path also mounts `services/ui-service/build/frontend-static` as an overlay when that directory contains a host build, so frontend watch output can take over without replacing the clean-checkout fallback baked into the image. Compose also runs a `codex-runtime` service that owns `codex exec` and exposes the runtime boundary to orchestration over the internal network.
 
 4. Open:
 
