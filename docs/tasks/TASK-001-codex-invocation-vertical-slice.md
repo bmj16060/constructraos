@@ -29,6 +29,8 @@ If that seam is not solid, persistence and richer domain modeling are premature.
 - one minimal execution adapter contract
 - one minimal structured result schema
 - one atomic Codex interaction for the first execution path
+- shared workflow and activity contracts added through `libraries/commons`
+- a typed workflow client path added through `libraries/orchestration-clients`
 - verification through Temporal workflow result, activity output, and logs
 
 ## Out of Scope
@@ -63,12 +65,13 @@ Later milestones may also allow a single workflow-managed step to span multiple 
 
 ## Work Sequence
 
-1. Define the minimal workflow input and output contracts.
+1. Define the minimal workflow input and output contracts in `libraries/commons`.
 2. Define the first Codex execution adapter contract.
-3. Implement one Temporal workflow that performs a single execution step.
-4. Implement one activity that calls the execution adapter.
-5. Run the workflow against a real local Codex invocation path.
-6. Confirm the workflow receives and returns the structured result.
+3. Add a typed workflow client adapter in `libraries/orchestration-clients`.
+4. Implement one Temporal workflow that performs a single execution step.
+5. Implement one activity that calls the execution adapter.
+6. Run the workflow against a real local Codex invocation path.
+7. Confirm the workflow receives and returns the structured result.
 
 ## Follow-On Milestone
 

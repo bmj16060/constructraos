@@ -25,6 +25,7 @@ This milestone makes execution state durable and queryable through PostgreSQL.
 - shared entities and repositories in `libraries/persistence`
 - activity-backed writes for execution results
 - read path for task and execution status
+- reuse of the current shared Flyway and repository pattern already used by the persisted hello-world history
 
 ## Out of Scope
 

@@ -17,6 +17,8 @@ The repo already has the right baseline components for this work:
 
 - `api-service` as the external HTTP and MCP boundary
 - `orchestration` as the Temporal worker/runtime boundary
+- `libraries/commons` for shared workflow, activity, and model contracts
+- `libraries/orchestration-clients` for typed workflow client adapters used by the API boundary
 - `libraries/persistence` for shared schema and repositories
 - PostgreSQL as the durable database
 
@@ -234,7 +236,14 @@ Initial placement:
 
 - `api-service`
   - start-task and status/query endpoints
+  - session bootstrap and policy checks before side effects
   - MCP tools that call those boundaries
+- `libraries/commons`
+  - shared workflow interfaces
+  - activity interfaces
+  - shared orchestration models
+- `libraries/orchestration-clients`
+  - typed workflow client adapters used by `api-service`
 - `services/orchestration`
   - Temporal workflow implementations
   - activities that call the Codex execution adapter and persistence operations
@@ -246,6 +255,7 @@ Preferred near-term direction:
 - define a stable adapter contract first
 - keep the first implementation compatible with a sidecar-hosted Codex CLI
 - allow that adapter to move behind a wrapper service API later without changing workflow semantics
+- extend the existing shared-contract and typed-client pattern instead of coupling `api-service` directly to Temporal implementation details
 
 ## Consequences
 
