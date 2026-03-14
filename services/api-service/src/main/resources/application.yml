@@ -48,6 +48,9 @@ graph:
   enabled: ${GRAPH_ENABLED:false}
   uri: ${GRAPH_URI:}
 
+task:
+  default-working-directory: ${TASK_DEFAULT_WORKING_DIRECTORY:}
+
 otel:
   traces:
     exporter: ${OTEL_TRACES_EXPORTER:none}

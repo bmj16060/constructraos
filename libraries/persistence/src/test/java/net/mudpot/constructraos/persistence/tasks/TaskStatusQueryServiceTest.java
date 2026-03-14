@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,6 +112,61 @@ class TaskStatusQueryServiceTest {
         assertEquals("reviewer", resultView.get().recommendedNextAgent());
         assertEquals("thread-123", resultView.get().providerSessionId());
         assertEquals(transcriptId, resultView.get().transcriptRecordId());
+    }
+
+    @Test
+    void recentByProjectRootPathReturnsLatestTaskViewsForProject() {
+        final UUID projectId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        final UUID taskId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+
+        final ProjectEntity project = new ProjectEntity();
+        project.setId(projectId);
+        project.setName("ConstructraOS");
+        project.setRootPath("/workspace/ConstructraOS");
+
+        final TaskEntity task = new TaskEntity();
+        task.setId(taskId);
+        task.setProjectId(projectId);
+        task.setWorkflowId("wf-456");
+        task.setGoal("Plan the next durable slice.");
+        task.setStatus("running");
+        task.setRequestedAgentName("planner");
+        task.setRequestedByKind("anonymous");
+        task.setRequestedBySessionId("anon-session-2");
+        task.setCreatedAt(Instant.parse("2026-03-14T03:00:00Z"));
+
+        final TaskRepository taskRepository = repositoryProxy(
+            TaskRepository.class,
+            Map.of("findRecentByProjectId", List.of(task))
+        );
+        final ProjectRepository projectRepository = repositoryProxy(
+            ProjectRepository.class,
+            Map.of("findByRootPath", project, "findById", project)
+        );
+        final Map<String, Object> taskStepReturns = new HashMap<>();
+        taskStepReturns.put("findLatestByTaskId", null);
+        final TaskStepRepository taskStepRepository = repositoryProxy(
+            TaskStepRepository.class,
+            taskStepReturns
+        );
+        final TaskStepResultRepository taskStepResultRepository = repositoryProxy(TaskStepResultRepository.class, Map.of());
+        final AgentSessionRepository agentSessionRepository = repositoryProxy(AgentSessionRepository.class, Map.of());
+        final TranscriptRecordRepository transcriptRecordRepository = repositoryProxy(TranscriptRecordRepository.class, Map.of());
+
+        final TaskStatusQueryService service = new TaskStatusQueryService(
+            taskRepository,
+            projectRepository,
+            taskStepRepository,
+            taskStepResultRepository,
+            agentSessionRepository,
+            transcriptRecordRepository
+        );
+
+        final List<TaskStatusView> recent = service.recentByProjectRootPath("/workspace/ConstructraOS", 20);
+
+        assertEquals(1, recent.size());
+        assertEquals("wf-456", recent.getFirst().workflowId());
+        assertEquals("running", recent.getFirst().status());
     }
 
     @SuppressWarnings("unchecked")

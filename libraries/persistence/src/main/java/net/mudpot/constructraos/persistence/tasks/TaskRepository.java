@@ -5,12 +5,22 @@ import io.micronaut.data.jdbc.annotation.JdbcRepository;
 import io.micronaut.data.model.query.builder.sql.Dialect;
 import io.micronaut.data.repository.CrudRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @JdbcRepository(dialect = Dialect.POSTGRES)
 public interface TaskRepository extends CrudRepository<TaskEntity, UUID> {
     Optional<TaskEntity> findByWorkflowId(String workflowId);
+
+    @Query("""
+        SELECT *
+        FROM tasks
+        WHERE project_id = :projectId
+        ORDER BY created_at DESC
+        LIMIT :limit
+        """)
+    List<TaskEntity> findRecentByProjectId(UUID projectId, int limit);
 
     @Query("""
         INSERT INTO tasks (

@@ -125,6 +125,7 @@ services:
       OTEL_TRACES_SAMPLER: always_on
       GRAPH_ENABLED: ${GRAPH_ENABLED:-false}
       GRAPH_URI: ${GRAPH_URI:-}
+      TASK_DEFAULT_WORKING_DIRECTORY: /workspace
     ports:
       - "${API_SERVICE_HOST_PORT:-18080}:8080"
 

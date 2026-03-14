@@ -1,6 +1,6 @@
 # TASK-003: API and MCP Task Surface
 
-Status: Planned
+Status: Implemented
 
 Date: 2026-03-14
 
@@ -54,3 +54,12 @@ This task is complete when:
 - start-side policy checks follow the existing API and policy-service pattern
 - API controllers remain thin and do not become the home of business or data access logic
 - the API and MCP surfaces return consistent results
+
+## Result
+
+- Added `/api/tasks/start`, `/api/tasks`, and `/api/tasks/{workflowId}` as the first operator-facing task surface.
+- Added `task_start`, `task_list`, and `task_status` MCP tools backed by the same task surface service as the HTTP boundary.
+- Reused the typed `CodexExecutionWorkflowClient` for start-side orchestration and `TaskStatusQueryService` for read-side status/list queries.
+- Added project-scoped recent task reads in `libraries/persistence` instead of duplicating read assembly in controllers or tools.
+- Added dedicated task policy actions for start, read, and list behavior.
+- Aligned the compose-served task boundary with the mounted runtime project path by defaulting task working directories to `/workspace` in Compose.

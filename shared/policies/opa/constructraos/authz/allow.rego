@@ -2,6 +2,9 @@ package constructraos.authz
 
 default allow := false
 allowed_actions := {
+  "task.codex_execution.list",
+  "task.codex_execution.read",
+  "task.codex_execution.start",
   "workflow.codex_execution.run",
   "workflow.codex_execution.start",
   "workflow.hello_world.run",

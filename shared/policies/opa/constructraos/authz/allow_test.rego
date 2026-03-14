@@ -8,6 +8,14 @@ test_codex_run_allowed if {
   allow with input as {"action": "workflow.codex_execution.run"}
 }
 
+test_task_start_allowed if {
+  allow with input as {"action": "task.codex_execution.start"}
+}
+
+test_task_read_allowed if {
+  allow with input as {"action": "task.codex_execution.read"}
+}
+
 test_execute_allowed_for_valid_use_case if {
   allow with input as {
     "action": "workflow.hello_world.execute",

@@ -16,8 +16,10 @@ What it does today:
 
 - serves a small UI shell through `nginx`
 - exposes API endpoints for `/api/session`, `/api/workflows/hello-world/run`, `/api/workflows/hello-world/start`, and `/api/workflows/hello-world/history`
-- exposes an MCP HTTP endpoint at `/mcp` with a single `hello` tool
+- exposes task API endpoints at `/api/tasks/start`, `/api/tasks`, and `/api/tasks/{workflowId}`
+- exposes an MCP HTTP endpoint at `/mcp` with `hello`, `task_start`, `task_list`, and `task_status` tools
 - runs a Temporal-backed `hello-world` workflow
+- runs Codex-backed task workflows with durable task status persisted in Postgres
 - evaluates policy through OPA and the policy service
 - persists workflow run history in Postgres
 - emits traces through OpenTelemetry and Jaeger
