@@ -37,6 +37,13 @@ Examples:
 - `fix: correct workflow history query`
 - `refactor: extract session bootstrap logic`
 
+## Verification Expectations
+
+- Run the nearest useful automated tests for the affected code before closing a meaningful pass.
+- For platform-level changes, module moves, dependency wiring changes, or other edits that can affect the full local stack, also run `docker compose up --build`.
+- When `docker compose up --build` is part of verification, confirm the relevant service surfaces respond as expected instead of treating image build success as sufficient.
+- If any expected verification step is skipped, state that explicitly in the close-out with the reason.
+
 ## Close-Out Expectations
 
 Before finishing a meaningful pass:
@@ -44,5 +51,6 @@ Before finishing a meaningful pass:
 1. Check `git status --short`.
 2. Commit any completed logical unit of work unless the user asked to defer commits.
 3. If no commit was made, state explicitly why not.
-4. Keep docs current if the platform contract changed.
-5. State what you verified and what remains unverified.
+4. Run the appropriate tests and the compose verification path when the change warrants it, or state why not.
+5. Keep docs current if the platform contract changed.
+6. State what you verified and what remains unverified.
