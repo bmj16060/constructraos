@@ -24,5 +24,6 @@ dependencies {
     annotationProcessor 'io.micronaut.data:micronaut-data-processor'
     implementation 'io.micronaut:micronaut-runtime'
     implementation 'io.micronaut.data:micronaut-data-jdbc'
+    implementation "com.fasterxml.jackson.core:jackson-databind:${project.findProperty('jacksonDatabindVersion')}"
     implementation project(':libraries:commons')
 }

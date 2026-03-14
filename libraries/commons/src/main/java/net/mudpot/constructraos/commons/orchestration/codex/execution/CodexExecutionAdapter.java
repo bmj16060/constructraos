@@ -1,8 +1,8 @@
 package net.mudpot.constructraos.commons.orchestration.codex.execution;
 
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionActivityInput;
-import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
+import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 
 public interface CodexExecutionAdapter {
-    CodexExecutionResult execute(CodexExecutionActivityInput input);
+    CodexExecutionOutcome execute(CodexExecutionActivityInput input);
 }

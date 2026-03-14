@@ -1,7 +1,7 @@
 package net.mudpot.constructraos.commons.orchestration.codex.execution;
 
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionActivityInput;
-import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
+import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class CodexCliExecutionAdapter implements CodexExecutionAdapter {
     }
 
     @Override
-    public CodexExecutionResult execute(final CodexExecutionActivityInput input) {
+    public CodexExecutionOutcome execute(final CodexExecutionActivityInput input) {
         resourceSupport.sanitizedPrompt(input);
 
         Path tempCodexHome = null;
@@ -37,14 +37,14 @@ public class CodexCliExecutionAdapter implements CodexExecutionAdapter {
             final List<String> lines = runCodex(input, tempCodexHome, schemaFile);
             final CodexCliJsonOutputParser.ParsedCodexCliOutput parsed = outputParser.parse(lines);
             if (!parsed.errorMessage().isBlank()) {
-                throw new IllegalStateException(parsed.errorMessage());
+                throw new CodexExecutionException(parsed.errorMessage(), parsed.threadId(), lines);
             }
-            return parsed.result();
+            return new CodexExecutionOutcome(parsed.result(), parsed.threadId(), lines);
         } catch (final InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Codex execution interrupted.", exception);
+            throw new CodexExecutionException("Codex execution interrupted.", exception, "", List.of());
         } catch (final IOException exception) {
-            throw new RuntimeException("Codex execution failed to start.", exception);
+            throw new CodexExecutionException("Codex execution failed to start.", exception, "", List.of());
         } finally {
             deleteQuietly(schemaFile);
             deleteRecursivelyQuietly(tempCodexHome);
@@ -89,7 +89,7 @@ public class CodexCliExecutionAdapter implements CodexExecutionAdapter {
             final String error = parsed.errorMessage().isBlank()
                 ? "Codex execution exited with code " + process.exitValue() + "."
                 : parsed.errorMessage();
-            throw new IllegalStateException(error);
+            throw new CodexExecutionException(error, parsed.threadId(), lines);
         }
         return List.copyOf(lines);
     }

@@ -56,7 +56,9 @@ public class CodexExecutionWorkflowImpl implements CodexExecutionWorkflow {
                 Workflow.getInfo().getWorkflowId(),
                 prompt,
                 workingDirectory,
-                agentName
+                agentName,
+                optionalValue(input == null ? null : input.actorKind()),
+                optionalValue(input == null ? null : input.sessionId())
             )
         );
     }

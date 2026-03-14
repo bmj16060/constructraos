@@ -50,6 +50,8 @@ class CodexExecutionWorkflowImplTest {
             assertEquals("completed", result.status());
             assertEquals("wf-codex", StubCodexExecutionActivities.lastWorkflowId);
             assertEquals("planner", StubCodexExecutionActivities.lastAgentName);
+            assertEquals("anonymous", StubCodexExecutionActivities.lastActorKind);
+            assertEquals("anon-session-1", StubCodexExecutionActivities.lastSessionId);
         }
     }
 
@@ -86,11 +88,15 @@ class CodexExecutionWorkflowImplTest {
     private static final class StubCodexExecutionActivities implements CodexExecutionActivities {
         private static String lastWorkflowId;
         private static String lastAgentName;
+        private static String lastActorKind;
+        private static String lastSessionId;
 
         @Override
         public CodexExecutionResult execute(final CodexExecutionActivityInput input) {
             lastWorkflowId = input.workflowId();
             lastAgentName = input.agentName();
+            lastActorKind = input.actorKind();
+            lastSessionId = input.sessionId();
             return new CodexExecutionResult("completed", "Codex returned the structured result.", "none");
         }
     }

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionActivityInput;
-import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
+import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -43,11 +43,15 @@ class CodexRuntimeHttpExecutionAdapterTest {
                 new CodexRuntimeHttpSettings(runtimeServer.baseUrl(), 5, "/workspace")
             );
 
-            final CodexExecutionResult result = adapter.execute(new CodexExecutionActivityInput("wf-1", "Summarize the next step.", "", "planner"));
+            final CodexExecutionOutcome result = adapter.execute(
+                new CodexExecutionActivityInput("wf-1", "Summarize the next step.", "", "planner", "anonymous", "anon-session-1")
+            );
 
-            assertEquals("completed", result.status());
-            assertEquals("Containerized runtime responded.", result.summary());
-            assertEquals("reviewer", result.recommendedNextAgent());
+            assertEquals("completed", result.result().status());
+            assertEquals("Containerized runtime responded.", result.result().summary());
+            assertEquals("reviewer", result.result().recommendedNextAgent());
+            assertEquals("", result.sessionId());
+            assertEquals(1, result.transcriptLines().size());
             assertEquals("/workspace", capturedRequest.get().workingDirectory());
             assertTrue(capturedRequest.get().prompt().contains("Summarize the next step."));
             assertTrue(capturedRequest.get().outputSchema().contains("\"recommended_next_agent\""));
@@ -65,9 +69,9 @@ class CodexRuntimeHttpExecutionAdapterTest {
                 new CodexRuntimeHttpSettings(runtimeServer.baseUrl(), 5, "/workspace")
             );
 
-            final IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> adapter.execute(new CodexExecutionActivityInput("wf-1", "Summarize the next step.", "", "planner"))
+            final CodexExecutionException exception = assertThrows(
+                CodexExecutionException.class,
+                () -> adapter.execute(new CodexExecutionActivityInput("wf-1", "Summarize the next step.", "", "planner", "anonymous", "anon-session-1"))
             );
 
             assertEquals("Codex runtime is not configured.", exception.getMessage());

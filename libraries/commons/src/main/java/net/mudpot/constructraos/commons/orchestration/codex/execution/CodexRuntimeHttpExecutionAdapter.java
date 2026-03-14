@@ -3,7 +3,7 @@ package net.mudpot.constructraos.commons.orchestration.codex.execution;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionActivityInput;
-import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
+import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 
 import java.io.IOException;
 import java.net.URI;
@@ -29,7 +29,7 @@ public class CodexRuntimeHttpExecutionAdapter implements CodexExecutionAdapter {
     }
 
     @Override
-    public CodexExecutionResult execute(final CodexExecutionActivityInput input) {
+    public CodexExecutionOutcome execute(final CodexExecutionActivityInput input) {
         final CodexRuntimeExecutionResponse executionResponse;
         try {
             final String requestJson = objectMapper.writeValueAsString(
@@ -53,9 +53,9 @@ public class CodexRuntimeHttpExecutionAdapter implements CodexExecutionAdapter {
             executionResponse = parseExecutionResponse(response);
         } catch (final InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Codex runtime request interrupted.", exception);
+            throw new CodexExecutionException("Codex runtime request interrupted.", exception, "", List.of());
         } catch (final IOException exception) {
-            throw new RuntimeException("Codex runtime request failed.", exception);
+            throw new CodexExecutionException("Codex runtime request failed.", exception, "", List.of());
         }
 
         final CodexCliJsonOutputParser.ParsedCodexCliOutput parsed = outputParser.parse(executionResponse.lines());
@@ -65,13 +65,13 @@ public class CodexRuntimeHttpExecutionAdapter implements CodexExecutionAdapter {
                 : sanitize(executionResponse.error()).isBlank()
                     ? "Codex execution exited with code " + executionResponse.exitCode() + "."
                     : sanitize(executionResponse.error());
-            throw new IllegalStateException(error);
+            throw new CodexExecutionException(error, parsed.threadId(), executionResponse.lines());
         }
 
         if (!parsed.errorMessage().isBlank()) {
-            throw new IllegalStateException(parsed.errorMessage());
+            throw new CodexExecutionException(parsed.errorMessage(), parsed.threadId(), executionResponse.lines());
         }
-        return parsed.result();
+        return new CodexExecutionOutcome(parsed.result(), parsed.threadId(), executionResponse.lines());
     }
 
     private URI executionsUri() {
@@ -88,7 +88,7 @@ public class CodexRuntimeHttpExecutionAdapter implements CodexExecutionAdapter {
             final String error = sanitize(parsed.error()).isBlank()
                 ? "Codex runtime returned HTTP " + response.statusCode() + "."
                 : sanitize(parsed.error());
-            throw new IllegalStateException(error);
+            throw new CodexExecutionException(error, "", parsed.lines());
         }
         return parsed;
     }
