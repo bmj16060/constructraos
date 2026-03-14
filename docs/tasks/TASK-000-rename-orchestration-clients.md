@@ -1,6 +1,6 @@
 # TASK-000: Rename `libraries/orchestration-clients` to `libraries/clients`
 
-Status: Planned
+Status: Completed
 
 Date: 2026-03-14
 

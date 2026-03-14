@@ -51,7 +51,7 @@ ConstructraOS/
     interviews/
   libraries/
     commons/
-    orchestration-clients/
+    clients/
     persistence/
   services/
     api-service/

@@ -1,4 +1,4 @@
-package net.mudpot.constructraos.orchestrationclients.config;
+package net.mudpot.constructraos.clients.config;
 
 import io.micronaut.context.annotation.Factory;
 import io.opentelemetry.api.OpenTelemetry;

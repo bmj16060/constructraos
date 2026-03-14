@@ -18,7 +18,7 @@ The repo already has the right baseline components for this work:
 - `api-service` as the external HTTP and MCP boundary
 - `orchestration` as the Temporal worker/runtime boundary
 - `libraries/commons` for common workflow, activity, and model contracts
-- `libraries/orchestration-clients` for typed workflow client adapters used by the API boundary
+- `libraries/clients` for typed workflow client adapters used by the API boundary
 - `libraries/persistence` for shared schema and repositories
 - PostgreSQL as the durable database
 
@@ -244,7 +244,7 @@ Initial placement:
   - common workflow interfaces
   - activity interfaces
   - common orchestration models
-- `libraries/orchestration-clients`
+- `libraries/clients`
   - typed workflow client adapters used by `api-service`
 - `services/orchestration`
   - Temporal workflow implementations

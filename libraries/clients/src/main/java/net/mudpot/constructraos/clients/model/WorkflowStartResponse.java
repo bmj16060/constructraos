@@ -1,4 +1,4 @@
-package net.mudpot.constructraos.orchestrationclients.model;
+package net.mudpot.constructraos.clients.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

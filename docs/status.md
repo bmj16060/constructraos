@@ -8,6 +8,7 @@ Last updated: 2026-03-14
 - Keep the shipped demo intentionally small while introducing the first Codex orchestration slice.
 - Preserve the full core spine: API, orchestration, PostgreSQL, Valkey, tracing, policy/OPA, and UI shell.
 - The baseline uses an anonymous session boundary for request identity and policy input.
+- The typed Temporal client boundary now lives in `libraries/clients`.
 - Graph support remains an open architectural seam rather than an active part of the current baseline.
 - The next platform extension is project-aware Codex orchestration backed by Temporal workflows, activities, and PostgreSQL persistence.
 
@@ -20,9 +21,9 @@ Last updated: 2026-03-14
 
 ## Next 3 Tasks
 
-1. Rename `libraries/orchestration-clients` to `libraries/clients` before expanding that boundary further.
-2. Prove the first closed loop: a Temporal workflow invokes Codex through an activity and receives a simple structured response.
-3. Add PostgreSQL schema and persistence boundaries after the invocation seam is proven.
+1. Prove the first closed loop: a Temporal workflow invokes Codex through an activity and receives a simple structured response.
+2. Add PostgreSQL schema and persistence boundaries after the invocation seam is proven.
+3. Expose task start and status through API and MCP once orchestration state exists outside Temporal.
 
 ## Risks
 
