@@ -11,7 +11,7 @@ Last updated: 2026-03-14
 - The typed Temporal client boundary now lives in `libraries/clients`.
 - Graph support remains an open architectural seam rather than an active part of the current baseline.
 - TASK-001 is now implemented: a Temporal workflow can invoke Codex through a dedicated activity and return the minimal structured result contract without persistence.
-- TASK-001A is now implemented: Compose uses a dedicated `codex-runtime` wrapper service so orchestration no longer depends on the host operator's `~/.codex` directory.
+- TASK-001A is now implemented: Compose uses a dedicated `codex-runtime` Java service so orchestration no longer depends on the host operator's `~/.codex` directory.
 - The next platform extension is TASK-002 persistence so Codex orchestration state becomes queryable outside Temporal.
 
 ## In Progress

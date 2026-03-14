@@ -17,7 +17,7 @@ The preferred target is the sidecar-style boundary already described in ADR-001,
 
 Chosen implementation:
 
-- a small internal `codex-runtime` wrapper service with an HTTP API
+- a small internal `codex-runtime` service with an HTTP API
 - orchestration now uses an HTTP-backed execution adapter by default
 - Compose supplies Codex auth explicitly through `OPENAI_API_KEY` or repo-local `.codex-runtime/`
 
@@ -71,6 +71,6 @@ This task is complete when:
 - Added `services/codex-runtime/` as a Java service that exposes `GET /healthz` and `POST /executions`.
 - Repointed orchestration to an HTTP runtime adapter while preserving the workflow/activity request and result contract.
 - Kept a `CODEX_RUNTIME_MODE=cli` fallback for direct worker runs outside Compose.
-- Mounted the repo to `/workspace` for the wrapper container and made blank demo `workingDirectory` values resolve there.
+- Mounted the repo to `/workspace` for the `codex-runtime` container and made blank demo `workingDirectory` values resolve there.
 - Updated Compose and README so the supported auth path is explicit through `.env` or repo-local `.codex-runtime/` and no longer depends on implicit host `~/.codex` state.
 - Added `bin/bootstrap-codex-runtime.sh` to seed repo-local `.codex-runtime/` from an existing local Codex CLI login.

@@ -98,7 +98,7 @@ The default local `ui-service` path also mounts `services/ui-service/build/front
 
 The compose host ports are configurable through `.env` if those defaults still collide with other local services.
 
-For the current demo Codex workflow, a blank `workingDirectory` resolves to `/workspace` inside the wrapper container, which is the mounted repo root during Compose runs.
+For the current demo Codex workflow, a blank `workingDirectory` resolves to `/workspace` inside the `codex-runtime` container, which is the mounted repo root during Compose runs.
 
 ## Local Iteration
 
