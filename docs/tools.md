@@ -14,6 +14,7 @@ Use tools to tighten execution, not to replace the repo docs. For this project, 
 - Start with the repo docs and the exact code you need.
 - Use MCP tools when they materially improve reasoning, retrieval, or cross-thread continuity.
 - Prefer small, targeted tool usage over broad scans.
+- Do not stop at partial verification when the remaining checks are still runnable locally; continue until the intended live or automated checks are complete or a real blocker exists.
 - When a stable repo convention or user workflow preference is likely to matter in later turns, capture it in Memory unless the repo docs already cover it well enough.
 - Store durable project knowledge in one place. Do not duplicate the same fact across repo docs, Memory, and ad hoc notes unless there is a clear resume benefit.
 

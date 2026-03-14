@@ -42,6 +42,7 @@ Examples:
 - Run the nearest useful automated tests for the affected code before closing a meaningful pass.
 - For platform-level changes, module moves, dependency wiring changes, or other edits that can affect the full local stack, also run `docker compose up --build`.
 - When `docker compose up --build` is part of verification, confirm the relevant service surfaces respond as expected instead of treating image build success as sufficient.
+- Do not close a meaningful pass with remaining "unverified" items if the relevant checks are still runnable locally. Keep going until the intended checks pass or there is a real blocker such as missing credentials, unavailable infrastructure, or an explicit user stop.
 - If any expected verification step is skipped, state that explicitly in the close-out with the reason.
 
 ## Close-Out Expectations
@@ -53,4 +54,4 @@ Before finishing a meaningful pass:
 3. If no commit was made, state explicitly why not.
 4. Run the appropriate tests and the compose verification path when the change warrants it, or state why not.
 5. Keep docs current if the platform contract changed.
-6. State what you verified and what remains unverified.
+6. State what you verified and mention remaining unverified items only when a real blocker prevented verification.
