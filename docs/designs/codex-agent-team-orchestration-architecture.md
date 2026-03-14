@@ -15,6 +15,7 @@ The design emphasizes:
 - Interactive control from Codex via MCP
 - Human-in-the-loop consultation
 - Project-aware orchestration based on the user's working directory
+- Planning artifacts as first-class system outputs
 
 The system uses a **coordinator + sidecar pattern** where Codex agents run as isolated worker turns via:
 
@@ -191,6 +192,33 @@ Each agent:
 Agents **never invoke each other directly**.
 
 The coordinator handles all routing.
+
+The `planner` role is not limited to routing recommendations. It can also be used to turn an initial concept into durable planning artifacts such as:
+
+- design notes
+- ADR proposals
+- task breakdown documents
+
+Those artifacts should be treated as part of the system's intended output surface, not just as external operator workflow.
+
+---
+
+# Planning Artifact Capability
+
+An important follow-on capability is for the system to help formalize work before implementation begins.
+
+Target behavior:
+
+1. operator introduces a concept or change
+2. planner agent analyzes the concept
+3. system proposes or updates:
+   - a design note when the shape is still exploratory
+   - an ADR when durable boundaries or decisions are ready
+   - task documents when the work can be sequenced into delivery slices
+4. operator reviews and approves those artifacts
+5. implementation work proceeds from the approved task ladder
+
+This capability is not a required first implementation milestone, but it is part of the intended product shape because it lets the system participate in its own planning loop.
 
 ---
 

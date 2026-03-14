@@ -34,6 +34,7 @@ ConstructraOS will implement Codex orchestration with the following boundaries:
 4. The persistence model uses normalized relational tables for workflow-driving entities and `jsonb` columns for flexible payloads and transcript detail.
 5. The active project is resolved from the interactive caller's working directory and mapped to a durable project record.
 6. Detailed execution sequencing and milestone breakdown live in task documents rather than in the ADR.
+7. Planning artifacts such as design notes, ADR proposals, and task breakdowns are intended system outputs and may eventually be produced through a planner-oriented orchestration path.
 
 For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
 
@@ -73,6 +74,25 @@ Activity responsibilities:
 - answer query-oriented reads needed by API or MCP tools
 
 This keeps non-deterministic Codex execution out of workflow code while avoiding an early commitment to a specific hosting model.
+
+## Planning Artifact Model
+
+The current repo process turns a concept into:
+
+- a design document when the shape is still exploratory
+- an ADR when architectural boundaries become durable
+- task documents when the work can be sequenced
+
+This should be treated as a product capability, not only as a manual authoring habit.
+
+The system should eventually support a planner-oriented path that can:
+
+- accept a concept or requested change
+- synthesize or update a design note
+- propose or revise an ADR
+- generate or revise task documents
+
+Human approval remains the control point for accepting those artifacts, but the generation and maintenance of planning artifacts is part of the intended orchestration surface.
 
 ## Workspace and Review Model
 
@@ -203,6 +223,7 @@ Positive:
 - prevents unsafe concurrent writes by making workspace isolation explicit
 - keeps GitHub integration optional at the domain layer even if GitHub is the first provider used
 - preserves a clean side-effect boundary around Codex execution without overcommitting on transport or hosting
+- recognizes planning and work decomposition as a first-class system capability rather than an external manual process
 - delivers a narrow first slice without blocking on every future orchestration feature
 
 Tradeoffs:
@@ -212,3 +233,4 @@ Tradeoffs:
 - workspace leasing and cleanup introduce additional operational state to manage
 - review abstractions add domain complexity before non-GitHub providers exist, but they avoid locking the orchestration model to one vendor
 - the execution adapter contract needs to be designed carefully enough that both a sidecar and a wrapper-service implementation remain viable
+- planner-generated docs will need review and acceptance rules so the system does not silently redefine its own roadmap
