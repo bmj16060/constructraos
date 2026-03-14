@@ -27,6 +27,8 @@ Last updated: 2026-03-14
 - Codex auth for Compose now comes from explicit `.env` configuration or repo-local `.codex-runtime/`, not implicit host-home state.
 - TASK-003 added thin `/api/tasks` start/status/list handlers plus MCP task tools backed by the shared typed workflow client and persistence query service.
 - TASK-003 now defaults the compose-served task surface to `/workspace` so browser and MCP callers resolve the mounted project path instead of the API container workdir.
+- API/MCP ingress policy actions are being re-aligned to the `api.*` namespace while workflow-side deterministic checks remain under `workflow.*`, matching the older Aviation split.
+- The repo now has an `AuthPolicy` interceptor again for the task service surface so policy enforcement is no longer only imperative there.
 - The implementation ladder is now captured in `TASK-000` through `TASK-010`, including the later self-building phase.
 
 ## Next 3 Tasks

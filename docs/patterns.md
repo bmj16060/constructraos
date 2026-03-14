@@ -48,6 +48,8 @@
 
 - Services do not embed authorization logic directly in controllers when a reusable decision can live in OPA.
 - Deterministic business rules should live behind the policy boundary when they are reusable policy decisions rather than controller-local request handling.
+- API and MCP ingress authorization should use `api.*` action names.
+- Workflow-internal policy decisions should use `workflow.*` action names.
 - API calls `policy-service`.
 - `policy-service` delegates to OPA.
 - Workflows can call `policy-service` through a dedicated Temporal activity when policy-evaluable business rules belong inside orchestration rather than only at API ingress.

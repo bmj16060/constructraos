@@ -24,7 +24,7 @@ Use tools to tighten execution, not to replace the repo docs. For this project, 
 - Treat that registration as optional convenience, not as a baseline development dependency.
 - The repo is not yet at the point where normal development should rely on its own MCP surface.
 - For now, prefer direct code reads, Gradle tests, compose verification, and direct HTTP checks over depending on the repo MCP tools for implementation work.
-- The current MCP surface is useful mainly for light task start/status inspection and can be unavailable whenever the local stack is not running.
+- The current MCP surface is useful mainly for light task start/status inspection plus read-only task resources and can be unavailable whenever the local stack is not running.
 
 ## sequential-thinking
 

@@ -47,6 +47,7 @@ class HelloWorkflowControllerTest {
         assertEquals("anonymous", client.runActorKind);
         assertEquals("anon-session-1", client.runSessionId);
         assertEquals("Hello there.", response.greeting());
+        assertEquals("api.hello_world.run", policyEvaluator.lastRequest.action());
         assertEquals("anon-session-1", ((Map<?, ?>) policyEvaluator.lastRequest.input()).get("actor") instanceof Map<?, ?> actor ? actor.get("session_id") : "");
     }
 

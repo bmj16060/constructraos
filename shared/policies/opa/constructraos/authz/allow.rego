@@ -2,14 +2,14 @@ package constructraos.authz
 
 default allow := false
 allowed_actions := {
-  "task.codex_execution.list",
-  "task.codex_execution.read",
-  "task.codex_execution.start",
-  "workflow.codex_execution.run",
-  "workflow.codex_execution.start",
-  "workflow.hello_world.run",
-  "workflow.hello_world.start",
-  "workflow.hello_world.history",
+  "api.codex_execution.run",
+  "api.codex_execution.start",
+  "api.hello_world.run",
+  "api.hello_world.start",
+  "api.hello_world.read_history",
+  "api.tasks.read",
+  "api.tasks.read_transcript",
+  "api.tasks.start",
 }
 
 normalized_action := lower(trim_space(object.get(input, "action", "")))

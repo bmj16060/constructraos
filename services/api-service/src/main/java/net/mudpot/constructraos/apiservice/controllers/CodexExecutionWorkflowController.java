@@ -46,7 +46,7 @@ public class CodexExecutionWorkflowController {
     public MutableHttpResponse<CodexExecutionResult> run(final HttpRequest<?> httpRequest, @Body final CodexExecutionRequest request) {
         final CodexExecutionRequest normalized = normalizedRequest(request);
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
-        requirePolicy("workflow.codex_execution.run", normalized, session);
+        requirePolicy("api.codex_execution.run", normalized, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(
                 codexExecutionWorkflowClient.run(
@@ -65,7 +65,7 @@ public class CodexExecutionWorkflowController {
     public MutableHttpResponse<WorkflowStartResponse> start(final HttpRequest<?> httpRequest, @Body final CodexExecutionRequest request) {
         final CodexExecutionRequest normalized = normalizedRequest(request);
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
-        requirePolicy("workflow.codex_execution.start", normalized, session);
+        requirePolicy("api.codex_execution.start", normalized, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(
                 codexExecutionWorkflowClient.start(

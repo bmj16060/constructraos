@@ -4,11 +4,10 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import net.mudpot.constructraos.clients.model.WorkflowStartResponse;
 import net.mudpot.constructraos.clients.system.CodexExecutionWorkflowClient;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
 import net.mudpot.constructraos.persistence.tasks.TaskStatusQueryService;
 import net.mudpot.constructraos.persistence.tasks.TaskStatusView;
+import net.mudpot.constructraos.persistence.tasks.TaskTranscriptQueryService;
+import net.mudpot.constructraos.persistence.tasks.TaskTranscriptView;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -25,8 +24,7 @@ class TaskSurfaceServiceTest {
     void startTaskNormalizesInputAndDelegatesToWorkflowClient() {
         final StubCodexExecutionWorkflowClient client = new StubCodexExecutionWorkflowClient();
         client.startResponse = new WorkflowStartResponse("CodexExecutionWorkflow", "wf-1", "codex-execution-task-queue", "run-1");
-        final CapturingPolicyEvaluator policyEvaluator = new CapturingPolicyEvaluator();
-        final TaskSurfaceService service = new TaskSurfaceService(client, new StubTaskStatusQueryService(), policyEvaluator, "");
+        final TaskSurfaceService service = new TaskSurfaceService(client, new StubTaskStatusQueryService(), new StubTaskTranscriptQueryService(), "");
 
         final TaskStartResponse response = service.startTask(
             new TaskStartRequest("  Implement TASK-003.  ", "/tmp/project/../project", " reviewer ", " wf-1 "),
@@ -37,7 +35,6 @@ class TaskSurfaceServiceTest {
         assertEquals("/tmp/project", client.workingDirectory);
         assertEquals("reviewer", client.agentName);
         assertEquals("wf-1", response.workflowId());
-        assertEquals("task.codex_execution.start", policyEvaluator.lastRequest.action());
     }
 
     @Test
@@ -45,7 +42,7 @@ class TaskSurfaceServiceTest {
         final TaskSurfaceService service = new TaskSurfaceService(
             new StubCodexExecutionWorkflowClient(),
             new StubTaskStatusQueryService(),
-            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1"),
+            new StubTaskTranscriptQueryService(),
             ""
         );
 
@@ -86,7 +83,7 @@ class TaskSurfaceServiceTest {
         final TaskSurfaceService service = new TaskSurfaceService(
             new StubCodexExecutionWorkflowClient(),
             queryService,
-            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1"),
+            new StubTaskTranscriptQueryService(),
             ""
         );
 
@@ -105,7 +102,7 @@ class TaskSurfaceServiceTest {
         final TaskSurfaceService service = new TaskSurfaceService(
             client,
             new StubTaskStatusQueryService(),
-            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1"),
+            new StubTaskTranscriptQueryService(),
             "/workspace"
         );
 
@@ -122,7 +119,7 @@ class TaskSurfaceServiceTest {
         final TaskSurfaceService service = new TaskSurfaceService(
             new StubCodexExecutionWorkflowClient(),
             new StubTaskStatusQueryService(),
-            request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1"),
+            new StubTaskTranscriptQueryService(),
             ""
         );
 
@@ -132,6 +129,35 @@ class TaskSurfaceServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+    }
+
+    @Test
+    void getTaskTranscriptReturnsLatestTranscript() {
+        final StubTaskTranscriptQueryService transcriptQueryService = new StubTaskTranscriptQueryService();
+        transcriptQueryService.transcript = new TaskTranscriptView(
+            UUID.fromString("11111111-1111-1111-1111-111111111111"),
+            "wf-4",
+            UUID.fromString("22222222-2222-2222-2222-222222222222"),
+            1,
+            "completed",
+            "planner",
+            "codex-cli-jsonl",
+            "thread-1",
+            List.of("{\"type\":\"thread.started\"}"),
+            Instant.parse("2026-03-14T00:00:00Z"),
+            Instant.parse("2026-03-14T00:01:00Z")
+        );
+        final TaskSurfaceService service = new TaskSurfaceService(
+            new StubCodexExecutionWorkflowClient(),
+            new StubTaskStatusQueryService(),
+            transcriptQueryService,
+            ""
+        );
+
+        final TaskTranscriptResponse response = service.getTaskTranscript("wf-4", new TaskActorContext("mcp", "mcp-tool"));
+
+        assertEquals("wf-4", response.workflowId());
+        assertEquals("thread-1", response.providerSessionId());
     }
 
     private static final class StubCodexExecutionWorkflowClient extends CodexExecutionWorkflowClient {
@@ -182,13 +208,16 @@ class TaskSurfaceServiceTest {
         }
     }
 
-    private static final class CapturingPolicyEvaluator implements PolicyEvaluator {
-        private PolicyEvaluationRequest lastRequest;
+    private static final class StubTaskTranscriptQueryService extends TaskTranscriptQueryService {
+        private TaskTranscriptView transcript;
+
+        private StubTaskTranscriptQueryService() {
+            super(null, null, null);
+        }
 
         @Override
-        public PolicyEvaluationResult evaluate(final PolicyEvaluationRequest request) {
-            this.lastRequest = request;
-            return new PolicyEvaluationResult(true, "allowed", "constructraos.v1");
+        public Optional<TaskTranscriptView> findLatestByWorkflowId(final String workflowId) {
+            return Optional.ofNullable(transcript);
         }
     }
 }

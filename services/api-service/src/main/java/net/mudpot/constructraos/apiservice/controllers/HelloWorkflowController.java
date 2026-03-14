@@ -51,7 +51,7 @@ public class HelloWorkflowController {
     public MutableHttpResponse<HelloWorldResult> run(final HttpRequest<?> httpRequest, @Body final HelloWorldRequest request) {
         final HelloWorldRequest normalized = normalizedRequest(request);
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
-        requirePolicy("workflow.hello_world.run", normalized, session);
+        requirePolicy("api.hello_world.run", normalized, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(helloWorldWorkflowClient.run(normalized.name(), normalized.useCase(), session.actorKind(), session.sessionId())),
             session
@@ -62,7 +62,7 @@ public class HelloWorkflowController {
     public MutableHttpResponse<WorkflowStartResponse> start(final HttpRequest<?> httpRequest, @Body final HelloWorldRequest request) {
         final HelloWorldRequest normalized = normalizedRequest(request);
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
-        requirePolicy("workflow.hello_world.start", normalized, session);
+        requirePolicy("api.hello_world.start", normalized, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(helloWorldWorkflowClient.start(normalized.name(), normalized.useCase(), normalized.workflowId(), session.actorKind(), session.sessionId())),
             session
@@ -73,7 +73,7 @@ public class HelloWorkflowController {
     public MutableHttpResponse<List<HelloHistoryEntry>> history(final HttpRequest<?> httpRequest, @QueryValue(defaultValue = "12") final int limit) {
         final int resolvedLimit = Math.max(1, Math.min(limit, 50));
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
-        requirePolicy("workflow.hello_world.history", null, session);
+        requirePolicy("api.hello_world.read_history", null, session);
         return anonymousSessionService.attachCookieIfNeeded(
             HttpResponse.ok(helloHistoryQueryService.recent(resolvedLimit)),
             session

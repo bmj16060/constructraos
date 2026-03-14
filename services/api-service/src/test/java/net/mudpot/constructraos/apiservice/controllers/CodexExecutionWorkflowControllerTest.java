@@ -44,6 +44,7 @@ class CodexExecutionWorkflowControllerTest {
         assertEquals("anonymous", client.actorKind);
         assertEquals("anon-session-1", client.sessionId);
         assertEquals("completed", response.status());
+        assertEquals("api.codex_execution.run", policyEvaluator.lastRequest.action());
         assertEquals("anon-session-1", ((Map<?, ?>) policyEvaluator.lastRequest.input()).get("actor") instanceof Map<?, ?> actor ? actor.get("session_id") : "");
     }
 
