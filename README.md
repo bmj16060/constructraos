@@ -70,7 +70,13 @@ ConstructraOS/
 - set `OPENAI_API_KEY` in `.env`
 - place `auth.json` and optional `config.toml` under repo-local `.codex-runtime/`
 
-This Compose path no longer reads the host user's `~/.codex` directory.
+To seed `.codex-runtime/` from an existing local Codex CLI login, run:
+
+```bash
+./bin/bootstrap-codex-runtime.sh
+```
+
+This Compose path no longer reads the host user's `~/.codex` directory directly.
 
 3. Start the local stack:
 
