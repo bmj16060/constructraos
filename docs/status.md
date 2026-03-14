@@ -21,6 +21,7 @@ Last updated: 2026-03-14
 - The compose-served local stack remains the primary deployment and verification path for baseline development.
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the remaining backend slices.
+- A design note now captures a proposed app-server-backed Temporal execution state machine, including async activity completion, workflow signaling, periodic reconciliation, and a separate runtime coordination persistence boundary.
 - TASK-001A replaced the worker-local CLI path with an internal HTTP runtime adapter plus a Java `codex-runtime` service that owns `codex exec`.
 - TASK-002 added retry-safe PostgreSQL-backed task execution persistence with generic project, task, step, session, transcript, and result records under `libraries/persistence/tasks`.
 - TASK-002 verification now includes live successful and failed `codex-execution` runs against the compose-served stack, not only targeted module tests.
