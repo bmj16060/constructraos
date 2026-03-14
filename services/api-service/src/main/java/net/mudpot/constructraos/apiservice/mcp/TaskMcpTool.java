@@ -3,6 +3,7 @@ package net.mudpot.constructraos.apiservice.mcp;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.mcp.annotations.Tool;
 import jakarta.inject.Singleton;
+import net.mudpot.constructraos.apiservice.policy.AuthPolicy;
 import net.mudpot.constructraos.apiservice.tasks.TaskActorContext;
 import net.mudpot.constructraos.apiservice.tasks.TaskStartRequest;
 import net.mudpot.constructraos.apiservice.tasks.TaskStartResponse;
@@ -31,6 +32,7 @@ public class TaskMcpTool {
             returnDirect = true
         )
     )
+    @AuthPolicy("api.tasks.start")
     public TaskStartResponse startTask(
         final String goal,
         @Nullable final String workingDirectory,
@@ -55,6 +57,7 @@ public class TaskMcpTool {
             returnDirect = true
         )
     )
+    @AuthPolicy("api.tasks.read")
     public TaskStatusResponse taskStatus(final String workflowId) {
         return taskSurfaceService.getTaskStatus(workflowId, TaskActorContext.mcp());
     }
@@ -71,6 +74,7 @@ public class TaskMcpTool {
             returnDirect = true
         )
     )
+    @AuthPolicy("api.tasks.read")
     public List<TaskStatusResponse> listTasks(@Nullable final String workingDirectory, @Nullable final Integer limit) {
         return taskSurfaceService.listTasks(workingDirectory, limit == null ? 12 : limit, TaskActorContext.mcp());
     }

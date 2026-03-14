@@ -11,6 +11,7 @@ import io.micronaut.http.annotation.Post;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import net.mudpot.constructraos.apiservice.policy.AuthPolicy;
 import net.mudpot.constructraos.apiservice.session.AnonymousSession;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionService;
 import net.mudpot.constructraos.apiservice.tasks.TaskActorContext;
@@ -35,6 +36,7 @@ public class TaskController {
         this.anonymousSessionService = anonymousSessionService;
     }
 
+    @AuthPolicy("api.tasks.start")
     @Post("/start")
     public MutableHttpResponse<TaskStartResponse> start(final HttpRequest<?> httpRequest, @Body final TaskStartRequest request) {
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
@@ -44,6 +46,7 @@ public class TaskController {
         );
     }
 
+    @AuthPolicy("api.tasks.read")
     @Get("/{workflowId}")
     public MutableHttpResponse<TaskStatusResponse> status(final HttpRequest<?> httpRequest, @PathVariable final String workflowId) {
         final AnonymousSession session = anonymousSessionService.ensureSession(httpRequest);
@@ -53,6 +56,7 @@ public class TaskController {
         );
     }
 
+    @AuthPolicy("api.tasks.read")
     @Get
     public MutableHttpResponse<List<TaskStatusResponse>> recent(
         final HttpRequest<?> httpRequest,

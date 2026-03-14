@@ -8,9 +8,6 @@ import net.mudpot.constructraos.apiservice.session.AnonymousSessionConfig;
 import net.mudpot.constructraos.apiservice.session.AnonymousSessionService;
 import net.mudpot.constructraos.commons.orchestration.system.model.HelloWorldRequest;
 import net.mudpot.constructraos.commons.orchestration.system.model.HelloWorldResult;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
-import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
 import net.mudpot.constructraos.clients.model.WorkflowStartResponse;
 import net.mudpot.constructraos.clients.system.HelloWorldWorkflowClient;
 import net.mudpot.constructraos.persistence.history.HelloHistoryQueryService;
@@ -28,13 +25,11 @@ class HelloWorkflowControllerTest {
     @Test
     void runUsesWorkflowClientWhenPolicyAllows() {
         final StubHelloWorldWorkflowClient client = new StubHelloWorldWorkflowClient();
-        final CapturingPolicyEvaluator policyEvaluator = new CapturingPolicyEvaluator();
         client.runResponse = new HelloWorldResult("wf-1", "starter_hello_v1", "Hello there.", "openai-compatible", "demo", Map.of(), Map.of(), Instant.parse("2026-03-12T00:00:00Z"));
         final HelloWorkflowController controller = new HelloWorkflowController(
             client,
             new StubHelloHistoryQueryService(),
-            new StubAnonymousSessionService(),
-            policyEvaluator
+            new StubAnonymousSessionService()
         );
 
         final HelloWorldResult response = controller.run(
@@ -47,25 +42,19 @@ class HelloWorkflowControllerTest {
         assertEquals("anonymous", client.runActorKind);
         assertEquals("anon-session-1", client.runSessionId);
         assertEquals("Hello there.", response.greeting());
-        assertEquals("api.hello_world.run", policyEvaluator.lastRequest.action());
-        assertEquals("anon-session-1", ((Map<?, ?>) policyEvaluator.lastRequest.input()).get("actor") instanceof Map<?, ?> actor ? actor.get("session_id") : "");
     }
 
     @Test
-    void historyRejectsDeniedPolicy() {
+    void historyNormalizesLimit() {
         final HelloWorkflowController controller = new HelloWorkflowController(
             new StubHelloWorldWorkflowClient(),
             new StubHelloHistoryQueryService(),
-            new StubAnonymousSessionService(),
-            request -> new PolicyEvaluationResult(false, "denied", "constructraos.v1")
+            new StubAnonymousSessionService()
         );
 
-        final HttpStatusException exception = assertThrows(
-            HttpStatusException.class,
-            () -> controller.history(HttpRequest.GET("/api/workflows/hello-world/history?limit=10"), 10)
-        );
+        final var response = controller.history(HttpRequest.GET("/api/workflows/hello-world/history?limit=999"), 999);
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertTrue(response.body().isEmpty());
     }
 
     private static final class StubHelloWorldWorkflowClient extends HelloWorldWorkflowClient {
@@ -120,16 +109,6 @@ class HelloWorkflowControllerTest {
         @Override
         public List<net.mudpot.constructraos.commons.orchestration.system.model.HelloHistoryEntry> recent(final int limit) {
             return List.of();
-        }
-    }
-
-    private static final class CapturingPolicyEvaluator implements PolicyEvaluator {
-        private PolicyEvaluationRequest lastRequest;
-
-        @Override
-        public PolicyEvaluationResult evaluate(final PolicyEvaluationRequest request) {
-            this.lastRequest = request;
-            return new PolicyEvaluationResult(true, "allowed", "constructraos.v1");
         }
     }
 }

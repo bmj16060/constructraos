@@ -16,6 +16,4 @@ import java.lang.annotation.Target;
 @Type(AuthPolicyInterceptor.class)
 public @interface AuthPolicy {
     String value();
-
-    Class<? extends PolicyInputBuilder> inputBuilder() default DefaultPolicyInputBuilder.class;
 }

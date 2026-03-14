@@ -14,6 +14,7 @@ import java.util.UUID;
 
 @Singleton
 public class AnonymousSessionService {
+    private static final CharSequence SESSION_REQUEST_ATTRIBUTE = "constructraos.anonymous-session";
     private static final String DEFAULT_ACTOR_KIND = "anonymous";
 
     private final AnonymousSessionConfig config;
@@ -23,6 +24,10 @@ public class AnonymousSessionService {
     }
 
     public AnonymousSession ensureSession(final HttpRequest<?> request) {
+        final AnonymousSession cached = request.getAttribute(SESSION_REQUEST_ATTRIBUTE, AnonymousSession.class).orElse(null);
+        if (cached != null) {
+            return cached;
+        }
         final String rawToken = request.getCookies().findCookie(config.cookieName())
             .map(Cookie::getValue)
             .orElse("");
@@ -31,9 +36,13 @@ public class AnonymousSessionService {
         final Instant issuedAt = parseInstant(payload.get("issued_at"));
         final String actorKind = stringValue(payload.get("actor_kind"));
         if (!sessionId.isBlank() && issuedAt != null) {
-            return new AnonymousSession(sessionId, actorKind.isBlank() ? DEFAULT_ACTOR_KIND : actorKind, issuedAt, false);
+            final AnonymousSession session = new AnonymousSession(sessionId, actorKind.isBlank() ? DEFAULT_ACTOR_KIND : actorKind, issuedAt, false);
+            request.setAttribute(SESSION_REQUEST_ATTRIBUTE, session);
+            return session;
         }
-        return new AnonymousSession(UUID.randomUUID().toString(), DEFAULT_ACTOR_KIND, Instant.now(), true);
+        final AnonymousSession session = new AnonymousSession(UUID.randomUUID().toString(), DEFAULT_ACTOR_KIND, Instant.now(), true);
+        request.setAttribute(SESSION_REQUEST_ATTRIBUTE, session);
+        return session;
     }
 
     public <T> MutableHttpResponse<T> attachCookieIfNeeded(final MutableHttpResponse<T> response, final AnonymousSession session) {

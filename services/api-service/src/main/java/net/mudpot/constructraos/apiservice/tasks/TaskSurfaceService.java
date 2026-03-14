@@ -5,12 +5,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import net.mudpot.constructraos.apiservice.policy.AuthPolicy;
 import net.mudpot.constructraos.clients.system.CodexExecutionWorkflowClient;
-import net.mudpot.constructraos.apiservice.tasks.policy.TaskListPolicyInputBuilder;
-import net.mudpot.constructraos.apiservice.tasks.policy.TaskReadPolicyInputBuilder;
-import net.mudpot.constructraos.apiservice.tasks.policy.TaskStartPolicyInputBuilder;
-import net.mudpot.constructraos.apiservice.tasks.policy.TaskTranscriptPolicyInputBuilder;
 import net.mudpot.constructraos.persistence.tasks.TaskStatusQueryService;
 import net.mudpot.constructraos.persistence.tasks.TaskTranscriptQueryService;
 
@@ -36,7 +31,6 @@ public class TaskSurfaceService {
         this.defaultWorkingDirectory = TaskSurfaceNormalization.sanitize(defaultWorkingDirectory);
     }
 
-    @AuthPolicy(value = "api.tasks.start", inputBuilder = TaskStartPolicyInputBuilder.class)
     public TaskStartResponse startTask(final TaskStartRequest request, final TaskActorContext actor) {
         final TaskStartRequest normalized = TaskSurfaceNormalization.normalizedRequest(request, defaultWorkingDirectory);
         return TaskStartResponse.fromWorkflowStartResponse(
@@ -51,7 +45,6 @@ public class TaskSurfaceService {
         );
     }
 
-    @AuthPolicy(value = "api.tasks.read", inputBuilder = TaskReadPolicyInputBuilder.class)
     public TaskStatusResponse getTaskStatus(final String workflowId, final TaskActorContext actor) {
         final String normalizedWorkflowId = TaskSurfaceNormalization.normalizedWorkflowId(workflowId);
         return taskStatusQueryService.findByWorkflowId(normalizedWorkflowId)
@@ -59,7 +52,6 @@ public class TaskSurfaceService {
             .orElseThrow(() -> new HttpStatusException(HttpStatus.NOT_FOUND, "Task not found: " + normalizedWorkflowId));
     }
 
-    @AuthPolicy(value = "api.tasks.read", inputBuilder = TaskListPolicyInputBuilder.class)
     public List<TaskStatusResponse> listTasks(final String workingDirectory, final int limit, final TaskActorContext actor) {
         final String normalizedWorkingDirectory = TaskSurfaceNormalization.normalizedWorkingDirectory(workingDirectory, defaultWorkingDirectory);
         final int resolvedLimit = TaskSurfaceNormalization.normalizedLimit(limit);
@@ -68,7 +60,6 @@ public class TaskSurfaceService {
             .toList();
     }
 
-    @AuthPolicy(value = "api.tasks.read_transcript", inputBuilder = TaskTranscriptPolicyInputBuilder.class)
     public TaskTranscriptResponse getTaskTranscript(final String workflowId, final TaskActorContext actor) {
         final String normalizedWorkflowId = TaskSurfaceNormalization.normalizedWorkflowId(workflowId);
         return taskTranscriptQueryService.findLatestByWorkflowId(normalizedWorkflowId)

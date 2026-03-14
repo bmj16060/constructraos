@@ -16,6 +16,9 @@ import net.mudpot.constructraos.apiservice.tasks.TaskStartResponse;
 import net.mudpot.constructraos.apiservice.tasks.TaskStatusResponse;
 import net.mudpot.constructraos.apiservice.tasks.TaskSurfaceService;
 import net.mudpot.constructraos.apiservice.tasks.TaskTranscriptResponse;
+import net.mudpot.constructraos.commons.policy.PolicyEvaluationRequest;
+import net.mudpot.constructraos.commons.policy.PolicyEvaluationResult;
+import net.mudpot.constructraos.commons.policy.PolicyEvaluator;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -37,6 +40,11 @@ class TaskMcpResourceTest {
     @MockBean(TaskSurfaceService.class)
     TaskSurfaceService taskSurfaceService() {
         return new StubTaskSurfaceService();
+    }
+
+    @MockBean(PolicyEvaluator.class)
+    PolicyEvaluator policyEvaluator() {
+        return request -> new PolicyEvaluationResult(true, "allowed", "constructraos.v1");
     }
 
     @Test
@@ -64,48 +72,21 @@ class TaskMcpResourceTest {
     }
 
     @Test
-    void canReadRecentTasksStatusAndTranscriptResources() throws Exception {
-        initializeSession();
+    void resourceMethodsReturnExpectedJsonPayloads() throws Exception {
+        final TaskMcpResource resource = new TaskMcpResource(new StubTaskSurfaceService(), objectMapper);
 
-        final Map<String, Object> recentResponse = rpcRequest(
-            "4",
-            McpSchema.METHOD_RESOURCES_READ,
-            Map.of("uri", "constructraos://tasks/recent")
-        );
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> recentResult = (Map<String, Object>) recentResponse.get("result");
-        @SuppressWarnings("unchecked")
-        final List<Map<String, Object>> recentContents = (List<Map<String, Object>>) recentResult.get("contents");
-        final String recentJson = String.valueOf(recentContents.getFirst().get("text"));
+        final String recentJson = resource.recentTasks();
         final List<Map<String, Object>> recentTasks = objectMapper.readValue(recentJson, new TypeReference<>() { });
 
         assertTrue(recentTasks.stream().anyMatch(task -> "completed".equals(task.get("status"))));
 
         final String workflowId = String.valueOf(recentTasks.getFirst().get("workflow_id"));
 
-        final Map<String, Object> statusResponse = rpcRequest(
-            "5",
-            McpSchema.METHOD_RESOURCES_READ,
-            Map.of("uri", "constructraos://tasks/" + workflowId + "/status")
-        );
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> statusResult = (Map<String, Object>) statusResponse.get("result");
-        @SuppressWarnings("unchecked")
-        final List<Map<String, Object>> statusContents = (List<Map<String, Object>>) statusResult.get("contents");
-        final Map<String, Object> statusPayload = objectMapper.readValue(String.valueOf(statusContents.getFirst().get("text")), new TypeReference<>() { });
+        final Map<String, Object> statusPayload = objectMapper.readValue(resource.taskStatus(workflowId), new TypeReference<>() { });
 
         assertEquals(workflowId, statusPayload.get("workflow_id"));
 
-        final Map<String, Object> transcriptResponse = rpcRequest(
-            "6",
-            McpSchema.METHOD_RESOURCES_READ,
-            Map.of("uri", "constructraos://tasks/" + workflowId + "/transcript")
-        );
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> transcriptResult = (Map<String, Object>) transcriptResponse.get("result");
-        @SuppressWarnings("unchecked")
-        final List<Map<String, Object>> transcriptContents = (List<Map<String, Object>>) transcriptResult.get("contents");
-        final Map<String, Object> transcriptPayload = objectMapper.readValue(String.valueOf(transcriptContents.getFirst().get("text")), new TypeReference<>() { });
+        final Map<String, Object> transcriptPayload = objectMapper.readValue(resource.taskTranscript(workflowId), new TypeReference<>() { });
 
         assertEquals(workflowId, transcriptPayload.get("workflow_id"));
         assertTrue(transcriptPayload.containsKey("transcript_payload"));
