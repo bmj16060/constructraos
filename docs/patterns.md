@@ -38,7 +38,7 @@
 ## Persistence Pattern
 
 - Shared persistence entities and repositories live in `libraries/persistence`.
-- Query services and data access helpers should live in shared library boundaries such as `libraries/persistence`, not inside `api-service` controllers.
+- Query services and data access helpers should live in common library boundaries such as `libraries/persistence`, not inside `api-service` controllers.
 - Schema changes land as Flyway migrations in that same library so both API and worker see the same migration set.
 - The first demo persists workflow history, not domain complexity.
 

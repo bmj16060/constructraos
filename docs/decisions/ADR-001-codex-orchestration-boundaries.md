@@ -17,7 +17,7 @@ The repo already has the right baseline components for this work:
 
 - `api-service` as the external HTTP and MCP boundary
 - `orchestration` as the Temporal worker/runtime boundary
-- `libraries/commons` for shared workflow, activity, and model contracts
+- `libraries/commons` for common workflow, activity, and model contracts
 - `libraries/orchestration-clients` for typed workflow client adapters used by the API boundary
 - `libraries/persistence` for shared schema and repositories
 - PostgreSQL as the durable database
@@ -38,7 +38,7 @@ ConstructraOS will implement Codex orchestration with the following boundaries:
 6. Detailed execution sequencing and milestone breakdown live in task documents rather than in the ADR.
 7. Planning artifacts such as design notes, ADR proposals, and task breakdowns are intended system outputs and may eventually be produced through a planner-oriented orchestration path.
 8. Deterministic business rules and authorization decisions should flow through the policy boundary, not be embedded ad hoc in Java orchestration code.
-9. `api-service` remains a thin boundary; business logic and data access should live in workflow, policy, and shared library boundaries rather than in API controllers.
+9. `api-service` remains a thin boundary; business logic and data access should live in workflow, policy, `libraries/commons`, and `libraries/persistence` boundaries rather than in API controllers.
 
 For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
 
@@ -241,9 +241,9 @@ Initial placement:
   - MCP tools that call those boundaries
   - no long-term business or data access logic beyond boundary coordination
 - `libraries/commons`
-  - shared workflow interfaces
+  - common workflow interfaces
   - activity interfaces
-  - shared orchestration models
+  - common orchestration models
 - `libraries/orchestration-clients`
   - typed workflow client adapters used by `api-service`
 - `services/orchestration`
@@ -251,7 +251,7 @@ Initial placement:
   - activities that call the Codex execution adapter and persistence operations
 - `libraries/persistence`
   - entities, repositories, and Flyway migrations for orchestration records
-  - shared query services used by boundary layers instead of controller-local data access
+  - common query services used by boundary layers instead of controller-local data access
 
 Preferred near-term direction:
 

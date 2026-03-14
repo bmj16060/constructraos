@@ -29,7 +29,7 @@ If that seam is not solid, persistence and richer domain modeling are premature.
 - one minimal execution adapter contract
 - one minimal structured result schema
 - one atomic Codex interaction for the first execution path
-- shared workflow and activity contracts added through `libraries/commons`
+- common workflow and activity contracts added through `libraries/commons`
 - a typed workflow client path added through `libraries/orchestration-clients`
 - verification through Temporal workflow result, activity output, and logs
 
