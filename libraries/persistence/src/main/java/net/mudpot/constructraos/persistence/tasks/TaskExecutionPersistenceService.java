@@ -6,6 +6,7 @@ import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecution
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionOutcome;
 import net.mudpot.constructraos.commons.orchestration.codex.model.CodexExecutionResult;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -47,12 +48,19 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
     public TaskExecutionContext beginExecution(final CodexExecutionActivityInput input) {
         final String rootPath = normalizedRootPath(input.workingDirectory());
         final String agentName = normalizedAgentName(input.agentName());
-        final ProjectEntity project = projectRepository.findByRootPath(rootPath)
-            .orElseGet(() -> projectRepository.save(newProject(rootPath)));
-        final TaskEntity task = upsertTask(project, input, agentName);
-        final AgentSessionEntity agentSession = upsertAgentSession(task.getId(), agentName);
-        final TaskStepEntity taskStep = upsertTaskStep(task.getId(), agentSession.getId(), agentName);
-        return new TaskExecutionContext(project.getId(), task.getId(), taskStep.getId(), agentSession.getId());
+        final UUID projectId = stableUuid("project", rootPath);
+        projectRepository.upsertByRootPath(projectId, derivedProjectName(rootPath), rootPath);
+
+        final UUID taskId = stableUuid("task", input.workflowId());
+        upsertTask(projectId, taskId, input, agentName);
+
+        final UUID agentSessionId = stableUuid("agent-session", taskId.toString(), agentName);
+        upsertAgentSession(taskId, agentSessionId, agentName);
+
+        final UUID taskStepId = stableUuid("task-step", taskId.toString(), Integer.toString(FIRST_STEP_NUMBER));
+        upsertTaskStep(taskId, taskStepId, agentSessionId, agentName);
+
+        return new TaskExecutionContext(projectId, taskId, taskStepId, agentSessionId);
     }
 
     @Override
@@ -81,11 +89,11 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
 
         taskStep.setStatus(result.status());
         taskStep.setCompletedAt(completedAt);
-        taskStepRepository.save(taskStep);
+        taskStepRepository.update(taskStep);
 
         task.setStatus(result.status());
         task.setCompletedAt(completedAt);
-        taskRepository.save(task);
+        taskRepository.update(task);
     }
 
     @Override
@@ -120,56 +128,46 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
 
         taskStep.setStatus(STATUS_FAILED);
         taskStep.setCompletedAt(completedAt);
-        taskStepRepository.save(taskStep);
+        taskStepRepository.update(taskStep);
 
         task.setStatus(STATUS_FAILED);
         task.setCompletedAt(completedAt);
-        taskRepository.save(task);
+        taskRepository.update(task);
     }
 
-    private ProjectEntity newProject(final String rootPath) {
-        final ProjectEntity entity = new ProjectEntity();
-        entity.setName(derivedProjectName(rootPath));
-        entity.setRootPath(rootPath);
-        return entity;
+    private void upsertTask(final UUID projectId, final UUID taskId, final CodexExecutionActivityInput input, final String agentName) {
+        taskRepository.upsertByWorkflowId(
+            taskId,
+            projectId,
+            input.workflowId(),
+            sanitize(input.prompt()),
+            STATUS_RUNNING,
+            agentName,
+            sanitize(input.actorKind()),
+            sanitize(input.sessionId())
+        );
     }
 
-    private TaskEntity upsertTask(final ProjectEntity project, final CodexExecutionActivityInput input, final String agentName) {
-        final TaskEntity entity = taskRepository.findByWorkflowId(input.workflowId()).orElseGet(TaskEntity::new);
-        entity.setProjectId(project.getId());
-        entity.setWorkflowId(input.workflowId());
-        entity.setGoal(sanitize(input.prompt()));
-        entity.setStatus(STATUS_RUNNING);
-        entity.setRequestedAgentName(agentName);
-        entity.setRequestedByKind(sanitize(input.actorKind()));
-        entity.setRequestedBySessionId(sanitize(input.sessionId()));
-        entity.setCompletedAt(null);
-        return taskRepository.save(entity);
+    private void upsertAgentSession(final UUID taskId, final UUID agentSessionId, final String agentName) {
+        agentSessionRepository.upsertByTaskAndAgentName(agentSessionId, taskId, agentName, "");
     }
 
-    private AgentSessionEntity upsertAgentSession(final UUID taskId, final String agentName) {
-        final AgentSessionEntity entity = agentSessionRepository.findByTaskIdAndAgentName(taskId, agentName).orElseGet(AgentSessionEntity::new);
-        entity.setTaskId(taskId);
-        entity.setAgentName(agentName);
-        return agentSessionRepository.save(entity);
-    }
-
-    private TaskStepEntity upsertTaskStep(final UUID taskId, final UUID agentSessionId, final String agentName) {
-        final TaskStepEntity entity = taskStepRepository.findByTaskIdAndStepNumber(taskId, FIRST_STEP_NUMBER).orElseGet(TaskStepEntity::new);
-        entity.setTaskId(taskId);
-        entity.setStepNumber(FIRST_STEP_NUMBER);
-        entity.setAgentName(agentName);
-        entity.setAgentSessionId(agentSessionId);
-        entity.setStatus(STATUS_RUNNING);
-        entity.setCompletedAt(null);
-        return taskStepRepository.save(entity);
+    private void upsertTaskStep(final UUID taskId, final UUID taskStepId, final UUID agentSessionId, final String agentName) {
+        taskStepRepository.upsertByTaskAndStepNumber(
+            taskStepId,
+            taskId,
+            FIRST_STEP_NUMBER,
+            agentName,
+            agentSessionId,
+            STATUS_RUNNING
+        );
     }
 
     private void updateAgentSession(final AgentSessionEntity entity, final String sessionId) {
         final String normalized = sanitize(sessionId);
         if (!normalized.isBlank()) {
             entity.setProviderSessionId(normalized);
-            agentSessionRepository.save(entity);
+            agentSessionRepository.update(entity);
         }
     }
 
@@ -181,13 +179,12 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         final List<String> transcriptLines
     ) {
         final TranscriptRecordEntity entity = transcriptRecordRepository.findByTaskStepId(taskStep.getId()).orElseGet(TranscriptRecordEntity::new);
-        entity.setTaskId(task.getId());
-        entity.setTaskStepId(taskStep.getId());
-        entity.setAgentSessionId(agentSession.getId());
-        entity.setTranscriptKind(TRANSCRIPT_KIND);
-        entity.setProviderSessionId(sanitize(sessionId));
-        entity.setTranscriptPayload(transcriptLines == null ? List.of() : List.copyOf(transcriptLines));
-        transcriptRecordRepository.save(entity);
+        applyTranscriptValues(entity, task, taskStep, agentSession, sessionId, transcriptLines);
+        if (entity.getId() == null) {
+            transcriptRecordRepository.save(entity);
+            return;
+        }
+        transcriptRecordRepository.update(entity);
     }
 
     private void upsertTaskStepResult(
@@ -199,13 +196,45 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
         final Map<String, Object> resultPayload
     ) {
         final TaskStepResultEntity entity = taskStepResultRepository.findByTaskStepId(taskStep.getId()).orElseGet(TaskStepResultEntity::new);
+        applyTaskStepResultValues(entity, task, taskStep, status, summary, recommendedNextAgent, resultPayload);
+        if (entity.getId() == null) {
+            taskStepResultRepository.save(entity);
+            return;
+        }
+        taskStepResultRepository.update(entity);
+    }
+
+    private static void applyTranscriptValues(
+        final TranscriptRecordEntity entity,
+        final TaskEntity task,
+        final TaskStepEntity taskStep,
+        final AgentSessionEntity agentSession,
+        final String sessionId,
+        final List<String> transcriptLines
+    ) {
+        entity.setTaskId(task.getId());
+        entity.setTaskStepId(taskStep.getId());
+        entity.setAgentSessionId(agentSession.getId());
+        entity.setTranscriptKind(TRANSCRIPT_KIND);
+        entity.setProviderSessionId(sanitize(sessionId));
+        entity.setTranscriptPayload(transcriptLines == null ? List.of() : List.copyOf(transcriptLines));
+    }
+
+    private static void applyTaskStepResultValues(
+        final TaskStepResultEntity entity,
+        final TaskEntity task,
+        final TaskStepEntity taskStep,
+        final String status,
+        final String summary,
+        final String recommendedNextAgent,
+        final Map<String, Object> resultPayload
+    ) {
         entity.setTaskId(task.getId());
         entity.setTaskStepId(taskStep.getId());
         entity.setStatus(status);
         entity.setSummary(summary);
         entity.setRecommendedNextAgent(recommendedNextAgent);
         entity.setResultPayload(resultPayload);
-        taskStepResultRepository.save(entity);
     }
 
     private TaskEntity requiredTask(final UUID taskId) {
@@ -241,6 +270,11 @@ public class TaskExecutionPersistenceService implements TaskExecutionPersistence
     private static String derivedProjectName(final String rootPath) {
         final Path fileName = Path.of(rootPath).getFileName();
         return fileName == null ? rootPath : fileName.toString();
+    }
+
+    private static UUID stableUuid(final String scope, final String... parts) {
+        final String joined = scope + "::" + String.join("::", parts);
+        return UUID.nameUUIDFromBytes(joined.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String sanitize(final String value) {
