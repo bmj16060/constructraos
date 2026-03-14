@@ -1,6 +1,6 @@
 # TASK-001: Codex Invocation Vertical Slice
 
-Status: Planned
+Status: Completed
 
 Date: 2026-03-14
 
@@ -95,3 +95,11 @@ This task is complete when:
 - the activity returns a schema-valid structured result
 - the workflow exposes that result without requiring database persistence
 - the integration is verified through Temporal execution state and logs
+
+## Completion Notes
+
+- Implemented a dedicated `CodexExecutionWorkflow` and `CodexExecutionActivities` contract through `libraries/commons`.
+- Added the typed `CodexExecutionWorkflowClient` through `libraries/clients`.
+- Added reusable Codex CLI adapter code under `libraries/commons` around `codex exec --json --output-schema` that runs with a temporary `CODEX_HOME` populated from the operator's existing Codex auth/config files to avoid local state-db corruption during worker turns.
+- Added a minimal API trigger surface at `/api/workflows/codex-execution/run` and `/api/workflows/codex-execution/start`.
+- Added workflow, parser, controller, and policy regression tests.
