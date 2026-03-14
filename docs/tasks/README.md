@@ -16,6 +16,7 @@ Current planned sequence:
 
 - `TASK-000` rename `libraries/orchestration-clients` to `libraries/clients`
 - `TASK-001` prove workflow-to-Codex invocation with a simple structured result
+- `TASK-001A` replace the host-dependent Codex CLI path with a containerized runtime boundary
 - `TASK-002` persist execution state in PostgreSQL
 - `TASK-003` expose task start/status through API and MCP
 - `TASK-004` add workspace leasing for write-capable work
