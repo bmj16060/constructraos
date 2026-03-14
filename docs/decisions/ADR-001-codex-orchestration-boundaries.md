@@ -8,6 +8,7 @@ Related:
 
 - [Codex Agent Team Orchestration Architecture](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/designs/codex-agent-team-orchestration-architecture.md)
 - [Codex App Server Temporal Execution State Machine](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/designs/codex-app-server-temporal-execution-state-machine.md)
+- [ADR-002: App Server Temporal Execution Model](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-002-app-server-temporal-execution-model.md)
 - [TASK-001: Codex Invocation Vertical Slice](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-001-codex-invocation-vertical-slice.md)
 
 ## Context

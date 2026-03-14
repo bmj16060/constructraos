@@ -4,6 +4,7 @@ Date: 2026-03-14
 
 Related:
 
+- [ADR-002: App Server Temporal Execution Model](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-002-app-server-temporal-execution-model.md)
 - [ADR-001: Codex Orchestration Boundaries](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-001-codex-orchestration-boundaries.md)
 - [TASK-001A: Containerized Codex Runtime Boundary](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-001A-containerized-codex-runtime-boundary.md)
 - [TASK-002: Persist Execution State](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-002-persist-execution-state.md)
@@ -414,10 +415,7 @@ Negative:
 
 ## Recommended Next Step
 
-Before implementation, convert this note into:
+This note now feeds:
 
-- an ADR update or follow-on ADR if the async execution model becomes the chosen platform boundary
-- one or more task documents covering:
-  - runtime coordination persistence
-  - app-server session runtime
-  - async Temporal execution and recovery
+- [ADR-002: App Server Temporal Execution Model](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-002-app-server-temporal-execution-model.md)
+- [TASK-003B: App Server Temporal Runtime](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-003B-app-server-temporal-runtime.md)
