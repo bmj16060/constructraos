@@ -15,7 +15,7 @@ Last updated: 2026-03-14
 - TASK-002 is now implemented: Codex orchestration state persists through generic task execution records in PostgreSQL and is queryable outside Temporal.
 - TASK-003 is now implemented: API and MCP task surfaces can start work and read project-scoped durable task status on top of the persisted orchestration state.
 - ADR-002 is now accepted: ConstructraOS will move toward an app-server-backed Temporal execution model with async activity completion, workflow messaging, explicit reconciliation, PostgreSQL-backed runtime coordination, and Valkey as an optional acceleration layer.
-- The next execution architecture extension is TASK-003B: an app-server-backed Temporal runtime delivered through child milestones under `docs/tasks/TASK-003B/`.
+- The next execution architecture extension is TASK-003A: an app-server-backed Temporal runtime delivered through child milestones under `docs/tasks/TASK-003A/`.
 
 ## In Progress
 
@@ -23,7 +23,7 @@ Last updated: 2026-03-14
 - The current demo path is the anonymous-session-backed `hello-world` workflow, with UI history and policy enforcement serving as the reference implementation.
 - ADR-001 now captures the Codex orchestration boundaries, while task documents capture execution sequencing for the remaining backend slices.
 - A design note now captures a proposed app-server-backed Temporal execution state machine, including async activity completion, workflow signaling, periodic reconciliation, and a separate runtime coordination persistence boundary.
-- ADR-002 and TASK-003B now capture the chosen execution model and the child milestone breakdown for implementing it.
+- ADR-002 and TASK-003A now capture the chosen execution model and the child milestone breakdown for implementing it.
 - TASK-001A replaced the worker-local CLI path with an internal HTTP runtime adapter plus a Java `codex-runtime` service that owns `codex exec`.
 - TASK-002 added retry-safe PostgreSQL-backed task execution persistence with generic project, task, step, session, transcript, and result records under `libraries/persistence/tasks`.
 - TASK-002 verification now includes live successful and failed `codex-execution` runs against the compose-served stack, not only targeted module tests.

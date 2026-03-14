@@ -19,8 +19,8 @@ Current planned sequence:
 - `TASK-001A` replace the host-dependent Codex CLI path with a containerized runtime boundary
 - `TASK-002` persist execution state in PostgreSQL
 - `TASK-003` expose task start/status through API and MCP
-- `TASK-003A` add a basic secondary task console page in the UI shell
-- `TASK-003B` add an app-server-backed Temporal runtime with child tasks under `docs/tasks/TASK-003B/`
+- `TASK-003A` add an app-server-backed Temporal runtime with child tasks under `docs/tasks/TASK-003A/`
+- `TASK-003B` add a basic secondary task console page in the UI shell after the `TASK-003A` runtime shape is in place
 - `TASK-004` add workspace leasing for write-capable work
 - `TASK-005` add provider-neutral change and review records
 - `TASK-006` add planner artifact generation and approval flow

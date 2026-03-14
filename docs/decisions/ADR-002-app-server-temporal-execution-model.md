@@ -8,7 +8,7 @@ Related:
 
 - [ADR-001: Codex Orchestration Boundaries](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/decisions/ADR-001-codex-orchestration-boundaries.md)
 - [Codex App Server Temporal Execution State Machine](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/designs/codex-app-server-temporal-execution-state-machine.md)
-- [TASK-003B: App Server Temporal Runtime](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-003B-app-server-temporal-runtime.md)
+- [TASK-003A: App Server Temporal Runtime](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-003A-app-server-temporal-runtime.md)
 
 ## Context
 
