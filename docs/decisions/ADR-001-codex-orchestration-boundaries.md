@@ -1,4 +1,4 @@
-# ADR-001: Codex Orchestration Implementation Plan
+# ADR-001: Codex Orchestration Boundaries
 
 Status: Accepted
 
@@ -7,10 +7,11 @@ Date: 2026-03-13
 Related:
 
 - [Codex Agent Team Orchestration Architecture](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/designs/codex-agent-team-orchestration-architecture.md)
+- [TASK-001: Codex Invocation Vertical Slice](/Users/brandonjohnson/SourceCode/ConstructraOS/docs/tasks/TASK-001-codex-invocation-vertical-slice.md)
 
 ## Context
 
-ConstructraOS now has a target architecture for project-aware Codex agent orchestration, but it still needs an implementation plan that fits the current platform seams.
+ConstructraOS now has a target architecture for project-aware Codex agent orchestration, but it still needs durable boundary decisions that fit the current platform seams.
 
 The repo already has the right baseline components for this work:
 
@@ -32,8 +33,7 @@ ConstructraOS will implement Codex orchestration with the following boundaries:
 3. PostgreSQL is the system of record for projects, workspaces, tasks, agent sessions, transcript records, human questions, and change/review records.
 4. The persistence model uses normalized relational tables for workflow-driving entities and `jsonb` columns for flexible payloads and transcript detail.
 5. The active project is resolved from the interactive caller's working directory and mapped to a durable project record.
-6. The first implementation slice is a single-agent path:
-   `start_task -> run one Codex agent turn -> persist result and transcript -> route to next task state`
+6. Detailed execution sequencing and milestone breakdown live in task documents rather than in the ADR.
 
 For this ADR, "Codex execution adapter" means the boundary that accepts an execution request and returns:
 
@@ -172,31 +172,6 @@ Project resolution rules:
 
 This preserves the project-aware behavior from the design doc without requiring project selection in every prompt.
 
-## First Vertical Slice
-
-The first delivered slice is intentionally narrow.
-
-Included:
-
-- start a project-scoped task
-- run one planner or implementer turn through a Temporal workflow
-- assign an isolated workspace for write-capable work
-- execute one agent turn through the Codex execution adapter
-- persist the structured result
-- persist transcript metadata and transcript payload
-- persist or update the agent session ID
-- route the task into `completed`, `blocked`, or `ready_for_next_agent`
-
-Deferred until after the first slice works:
-
-- provider-backed review flows such as GitHub pull requests
-- multi-agent consultations
-- human question answer/resume loop
-- transcript summarization
-- transcript storage outside PostgreSQL
-- UI for orchestration state
-- advanced retry and escalation policies
-
 ## Service Placement
 
 The initial implementation should reuse existing repo boundaries instead of introducing new deployables.
@@ -237,24 +212,3 @@ Tradeoffs:
 - workspace leasing and cleanup introduce additional operational state to manage
 - review abstractions add domain complexity before non-GitHub providers exist, but they avoid locking the orchestration model to one vendor
 - the execution adapter contract needs to be designed carefully enough that both a sidecar and a wrapper-service implementation remain viable
-- the first slice will intentionally leave consultation and resume loops incomplete until the single-agent path is stable
-
-## Implementation Order
-
-1. Add the orchestration persistence schema and repositories in `libraries/persistence`.
-2. Define workflow input/output contracts, workspace leasing rules, and structured result models shared between API and orchestration.
-3. Implement the first coordinator workflow for a single-agent task.
-4. Define and implement the first Codex execution adapter behind an orchestration activity.
-5. Expose task start and task status through API and MCP boundaries.
-6. Add provider-neutral change/review records before wiring the first GitHub-backed review flow.
-7. Verify the end-to-end path against a real local Codex invocation.
-
-## Verification Expectation
-
-The first implementation pass is complete when:
-
-- a task can be started for a project resolved from the working directory
-- write-capable work receives an isolated workspace record rather than sharing a mutable checkout
-- the workflow runs one agent turn through the Codex execution adapter
-- the database contains the project, task, task step, session, transcript, and structured result records
-- the API or MCP layer can read back task status without inspecting Temporal history directly
