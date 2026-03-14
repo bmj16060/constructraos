@@ -11,3 +11,11 @@ Task documents should capture:
 
 Keep ADRs focused on durable architectural decisions and boundaries.
 Keep task documents focused on execution order and delivery slices.
+
+Current planned sequence:
+
+- `TASK-001` prove workflow-to-Codex invocation with a simple structured result
+- `TASK-002` persist execution state in PostgreSQL
+- `TASK-003` expose task start/status through API and MCP
+- `TASK-004` add workspace leasing for write-capable work
+- `TASK-005` add provider-neutral change and review records
