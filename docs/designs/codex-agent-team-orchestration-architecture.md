@@ -615,7 +615,9 @@ Codex acts as the operator interface while orchestration runs inside the MCP ser
        ↓
     docs
 
-Each step runs as a single Codex worker turn.
+Each Codex interaction is a single worker turn.
+
+A higher-level workflow step may still require multiple worker turns when the coordinator needs follow-up execution, consultation, or human input before that step is considered complete.
 
 ---
 
