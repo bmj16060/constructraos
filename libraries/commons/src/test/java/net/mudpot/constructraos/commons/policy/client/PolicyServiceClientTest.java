@@ -40,7 +40,8 @@ class PolicyServiceClientTest {
             new ObjectMapper(),
             OpenTelemetry.noop(),
             "http://policy-service:8082",
-            true
+            true,
+            3
         );
 
         final PolicyEvaluationResult result = client.evaluate(new PolicyEvaluationRequest(
@@ -55,7 +56,28 @@ class PolicyServiceClientTest {
         assertNotNull(httpClient.lastRequest.headers().firstValue("Content-Type").orElse(null));
     }
 
-    private static final class CapturingHttpClient extends HttpClient {
+    @Test
+    void usesConfiguredMaxAttemptsForRetriableFailures() {
+        final CountingHttpClient httpClient = new CountingHttpClient(503, "{\"allowed\":false,\"reason\":\"unavailable\",\"policyVersion\":\"constructraos.v1\"}");
+        final PolicyServiceClient client = new PolicyServiceClient(
+            httpClient,
+            new ObjectMapper(),
+            OpenTelemetry.noop(),
+            "http://policy-service:8082",
+            true,
+            2
+        );
+
+        final PolicyEvaluationResult result = client.evaluate(new PolicyEvaluationRequest(
+            "workflow.hello_world.run",
+            Map.of("resource", Map.of("type", "hello-world"))
+        ));
+
+        assertEquals(2, httpClient.attempts());
+        assertEquals("policy-service-http-503", result.reason());
+    }
+
+    private static class CapturingHttpClient extends HttpClient {
         private final int statusCode;
         private final String body;
         private HttpRequest lastRequest;
@@ -131,6 +153,24 @@ class PolicyServiceClientTest {
             final HttpResponse.PushPromiseHandler<T> pushPromiseHandler
         ) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class CountingHttpClient extends CapturingHttpClient {
+        private int attempts;
+
+        private CountingHttpClient(final int statusCode, final String body) {
+            super(statusCode, body);
+        }
+
+        @Override
+        public <T> HttpResponse<T> send(final HttpRequest request, final HttpResponse.BodyHandler<T> responseBodyHandler) {
+            attempts++;
+            return super.send(request, responseBodyHandler);
+        }
+
+        private int attempts() {
+            return attempts;
         }
     }
 

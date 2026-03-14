@@ -42,6 +42,7 @@ anon-session:
 policy:
   service-url: ${POLICY_SERVICE_URL:`http://127.0.0.1:8082`}
   service-enforce: ${POLICY_SERVICE_ENFORCE:true}
+  client-max-attempts: ${POLICY_CLIENT_MAX_ATTEMPTS:3}
 
 graph:
   enabled: ${GRAPH_ENABLED:false}

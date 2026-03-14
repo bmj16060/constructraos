@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class PolicyServiceClient implements PolicyEvaluator {
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int DEFAULT_MAX_ATTEMPTS = 3;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -28,9 +28,19 @@ public class PolicyServiceClient implements PolicyEvaluator {
     private final Tracer tracer;
     private final String policyServiceUrl;
     private final boolean enforce;
+    private final int maxAttempts;
 
     public PolicyServiceClient(final OpenTelemetry openTelemetry, final String policyServiceUrl, final boolean enforce) {
-        this(HttpClient.newBuilder().build(), new ObjectMapper(), openTelemetry, policyServiceUrl, enforce);
+        this(HttpClient.newBuilder().build(), new ObjectMapper(), openTelemetry, policyServiceUrl, enforce, DEFAULT_MAX_ATTEMPTS);
+    }
+
+    public PolicyServiceClient(
+        final OpenTelemetry openTelemetry,
+        final String policyServiceUrl,
+        final boolean enforce,
+        final int maxAttempts
+    ) {
+        this(HttpClient.newBuilder().build(), new ObjectMapper(), openTelemetry, policyServiceUrl, enforce, maxAttempts);
     }
 
     PolicyServiceClient(
@@ -38,7 +48,8 @@ public class PolicyServiceClient implements PolicyEvaluator {
         final ObjectMapper objectMapper,
         final OpenTelemetry openTelemetry,
         final String policyServiceUrl,
-        final boolean enforce
+        final boolean enforce,
+        final int maxAttempts
     ) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
@@ -46,6 +57,7 @@ public class PolicyServiceClient implements PolicyEvaluator {
         this.tracer = openTelemetry.getTracer("constructraos.policy-client");
         this.policyServiceUrl = policyServiceUrl;
         this.enforce = enforce;
+        this.maxAttempts = Math.max(1, maxAttempts);
     }
 
     @Override
@@ -59,7 +71,7 @@ public class PolicyServiceClient implements PolicyEvaluator {
             .setAttribute("http.url", policyServiceUrl + "/v1/policy/evaluate")
             .startSpan();
         try (Scope ignored = span.makeCurrent()) {
-            for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
                 span.addEvent("policy-service attempt", io.opentelemetry.api.common.Attributes.of(
                     io.opentelemetry.api.common.AttributeKey.longKey("attempt"),
                     (long) attempt
@@ -71,13 +83,13 @@ public class PolicyServiceClient implements PolicyEvaluator {
                     if (response.statusCode() >= 200 && response.statusCode() < 300) {
                         return objectMapper.readValue(response.body(), PolicyEvaluationResult.class);
                     }
-                    if (response.statusCode() < 500 || attempt == MAX_ATTEMPTS) {
+                    if (response.statusCode() < 500 || attempt == maxAttempts) {
                         span.setStatus(StatusCode.ERROR, "policy-service-http-" + response.statusCode());
                         return enforcementAwareFailure("policy-service-http-" + response.statusCode());
                     }
                 } catch (final Exception exception) {
                     span.recordException(exception);
-                    if (attempt == MAX_ATTEMPTS) {
+                    if (attempt == maxAttempts) {
                         span.setStatus(StatusCode.ERROR, "policy-service-error");
                         return enforcementAwareFailure("policy-service-error");
                     }

@@ -57,15 +57,15 @@ public class LlmActivitiesImpl implements LlmActivities {
             .apiKey(sanitize(config.openAiApiKey()).isBlank() ? "ollama" : sanitize(config.openAiApiKey()))
             .baseUrl(normalizeOpenAiBaseUrl(config.openAiBaseUrl()))
             .timeout(DEFAULT_TIMEOUT)
-            // Let the Temporal activity own retries instead of stacking SDK retries underneath it.
-            .maxRetries(0)
+            // Keep retries configurable so the client can be reused outside Temporal when needed.
+            .maxRetries(normalizeMaxRetries(config.openAiMaxRetries()))
             .build();
         this.anthropicClient = AnthropicOkHttpClient.builder()
             .apiKey(sanitize(config.anthropicApiKey()).isBlank() ? "unset" : sanitize(config.anthropicApiKey()))
             .baseUrl(normalizeAnthropicBaseUrl(config.anthropicBaseUrl()))
             .timeout(DEFAULT_TIMEOUT)
-            // Let the Temporal activity own retries instead of stacking SDK retries underneath it.
-            .maxRetries(0)
+            // Keep retries configurable so the client can be reused outside Temporal when needed.
+            .maxRetries(normalizeMaxRetries(config.anthropicMaxRetries()))
             .build();
     }
 
@@ -495,6 +495,10 @@ public class LlmActivitiesImpl implements LlmActivities {
             return value.substring(0, value.length() - "/messages".length());
         }
         return value;
+    }
+
+    private static int normalizeMaxRetries(final int value) {
+        return Math.max(0, value);
     }
 
     private static String sanitize(final String value) {

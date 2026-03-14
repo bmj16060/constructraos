@@ -29,7 +29,7 @@
 7. Activity persists durable results.
 8. API and UI read the resulting state back through normal service boundaries.
 
-- External clients called inside Temporal activities should avoid their own retry loops when Temporal activity retry policy already owns retry behavior.
+- External clients called inside Temporal activities should keep retry behavior configurable, but the activity path should set those clients to Temporal-friendly values so retry ownership does not get split across layers.
 
 ## Caching Pattern
 

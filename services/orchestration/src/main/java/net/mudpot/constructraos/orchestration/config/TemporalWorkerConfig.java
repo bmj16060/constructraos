@@ -27,6 +27,9 @@ public class TemporalWorkerConfig {
     @Value("${ai.openai.default-model}")
     private String openAiDefaultModel;
 
+    @Value("${ai.openai.max-retries:0}")
+    private int openAiMaxRetries;
+
     @Value("${ai.default-provider}")
     private String aiDefaultProvider;
 
@@ -41,6 +44,9 @@ public class TemporalWorkerConfig {
 
     @Value("${ai.anthropic.default-model}")
     private String anthropicDefaultModel;
+
+    @Value("${ai.anthropic.max-retries:0}")
+    private int anthropicMaxRetries;
 
     @Value("${valkey.enabled}")
     private boolean valkeyEnabled;
@@ -58,11 +64,13 @@ public class TemporalWorkerConfig {
     public String openAiBaseUrl() { return openAiBaseUrl; }
     public String openAiApiKey() { return openAiApiKey; }
     public String openAiDefaultModel() { return openAiDefaultModel; }
+    public int openAiMaxRetries() { return openAiMaxRetries; }
     public String aiDefaultProvider() { return aiDefaultProvider; }
     public String anthropicApiKey() { return anthropicApiKey; }
     public String anthropicBaseUrl() { return anthropicBaseUrl; }
     public String anthropicApiVersion() { return anthropicApiVersion; }
     public String anthropicDefaultModel() { return anthropicDefaultModel; }
+    public int anthropicMaxRetries() { return anthropicMaxRetries; }
     public boolean valkeyEnabled() { return valkeyEnabled; }
     public String valkeyHost() { return valkeyHost; }
     public int valkeyPort() { return valkeyPort; }

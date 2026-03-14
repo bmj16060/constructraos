@@ -13,8 +13,9 @@ public class PolicyClientFactory {
     public PolicyEvaluator policyEvaluator(
         final OpenTelemetry openTelemetry,
         @Value("${policy.service-url}") final String policyServiceUrl,
-        @Value("${policy.service-enforce:true}") final boolean enforce
+        @Value("${policy.service-enforce:true}") final boolean enforce,
+        @Value("${policy.client-max-attempts:3}") final int clientMaxAttempts
     ) {
-        return new PolicyServiceClient(openTelemetry, policyServiceUrl, enforce);
+        return new PolicyServiceClient(openTelemetry, policyServiceUrl, enforce, clientMaxAttempts);
     }
 }
